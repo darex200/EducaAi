@@ -9,9 +9,9 @@ export default function LoginPage() {
       <main className="mx-auto flex max-w-6xl flex-col items-center px-4 py-10 sm:px-6">
         <AuthForm mode="login" />
         <p className="mt-4 text-sm text-slate-600">
-          No account yet?{" "}
+          Aun no tienes cuenta?{" "}
           <Link href="/register" className="font-medium text-indigo-700">
-            Create one
+            Crear cuenta
           </Link>
         </p>
       </main>

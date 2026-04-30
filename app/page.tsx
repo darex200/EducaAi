@@ -9,35 +9,35 @@ export default function Home() {
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <section className="card-surface mb-8 p-8 text-center sm:p-12">
           <p className="mb-3 inline-flex rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold tracking-wide text-indigo-700">
-            Future-ready education
+            Educacion lista para el futuro
           </p>
           <h1 className="mx-auto mb-4 max-w-3xl text-3xl font-semibold tracking-tight text-indigo-900 sm:text-5xl">
-            Learn smarter with <span className="text-violet-600">Educa AI</span>
+            Aprende mejor con <span className="text-violet-600">Educa AI</span>
           </h1>
           <p className="mx-auto mb-7 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-            A modern learning platform where students grow with guided practice,
-            ethical AI support, and personalized learning paths.
+            Una plataforma moderna donde los estudiantes crecen con practica guiada,
+            apoyo de IA responsable y rutas de aprendizaje personalizadas.
           </p>
           <Link
             href="/dashboard"
             className="gradient-accent inline-flex rounded-full px-6 py-3 text-sm font-semibold transition hover:opacity-90"
           >
-            Start learning
+            Empezar a aprender
           </Link>
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <FeatureCard
-            title="Guided Learning"
-            description="Break down complex topics into manageable lessons and build confidence one step at a time."
+            title="Aprendizaje guiado"
+            description="Divide temas complejos en lecciones manejables y gana confianza paso a paso."
           />
           <FeatureCard
-            title="Ethical AI"
-            description="Our tutor supports understanding and reflection instead of giving direct shortcut answers."
+            title="IA responsable"
+            description="Nuestro tutor promueve comprension y reflexion en lugar de dar respuestas directas."
           />
           <FeatureCard
-            title="Personalized Support"
-            description="Get adaptive prompts and practice aligned with your pace and learning goals."
+            title="Apoyo personalizado"
+            description="Recibe orientacion adaptativa y practica alineada con tu ritmo y objetivos."
           />
         </section>
       </main>

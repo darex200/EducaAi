@@ -11,10 +11,10 @@ export function Navbar() {
         </Link>
         <nav className="flex items-center gap-3 text-sm">
           <Link href="/dashboard" className="rounded-full px-3 py-1.5 text-indigo-700 transition hover:bg-indigo-50">
-            Dashboard
+            Panel
           </Link>
           <Link href="/dashboard/topics" className="rounded-full px-3 py-1.5 text-indigo-700 transition hover:bg-indigo-50">
-            Topics
+            Temas
           </Link>
         </nav>
       </div>

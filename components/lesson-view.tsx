@@ -9,7 +9,7 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
       </header>
 
       <section className="card-surface p-6">
-        <h2 className="mb-4 text-lg font-semibold text-indigo-800">Step-by-step breakdown</h2>
+        <h2 className="mb-4 text-lg font-semibold text-indigo-800">Desglose paso a paso</h2>
         <ol className="space-y-2 text-sm text-slate-600">
           {lesson.steps.map((step, index) => (
             <li key={step} className="flex gap-3">
@@ -23,7 +23,7 @@ export function LessonView({ lesson }: { lesson: Lesson }) {
       </section>
 
       <section className="card-surface p-6">
-        <h2 className="mb-4 text-lg font-semibold text-indigo-800">Practice questions</h2>
+        <h2 className="mb-4 text-lg font-semibold text-indigo-800">Preguntas de practica</h2>
         <ul className="space-y-2 text-sm text-slate-600">
           {lesson.practiceQuestions.map((question) => (
             <li key={question} className="rounded-xl border bg-indigo-50/60 px-3 py-2">

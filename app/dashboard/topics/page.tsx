@@ -5,9 +5,9 @@ export default function TopicsPage() {
   return (
     <div className="space-y-4">
       <header className="card-surface p-6">
-        <h1 className="mb-2 text-2xl font-semibold text-indigo-800">Topics</h1>
+        <h1 className="mb-2 text-2xl font-semibold text-indigo-800">Temas</h1>
         <p className="text-sm text-slate-600">
-          Choose a topic to explore explanations, step-by-step breakdowns, and practice questions.
+          Elige un tema para explorar explicaciones, desgloses paso a paso y preguntas de practica.
         </p>
       </header>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

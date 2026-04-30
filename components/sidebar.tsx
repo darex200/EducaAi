@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/dashboard", label: "My Learning" },
-  { href: "/dashboard/topics", label: "Topics" },
-  { href: "/dashboard/ai-tutor", label: "AI Tutor" },
+  { href: "/dashboard", label: "Mi aprendizaje" },
+  { href: "/dashboard/topics", label: "Temas" },
+  { href: "/dashboard/ai-tutor", label: "Tutor IA" },
 ];
 
 export function Sidebar() {
@@ -15,7 +15,7 @@ export function Sidebar() {
   return (
     <aside className="card-surface h-fit w-full p-4 lg:w-64">
       <h2 className="mb-4 px-2 text-sm font-semibold uppercase tracking-wide text-indigo-500">
-        Learning Space
+        Espacio de aprendizaje
       </h2>
       <nav className="space-y-1.5">
         {links.map((link) => {

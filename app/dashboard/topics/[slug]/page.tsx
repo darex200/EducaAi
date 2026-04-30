@@ -22,7 +22,7 @@ export default async function DashboardTopicPage({
   return (
     <main className="space-y-4">
       <Link href="/dashboard/topics" className="text-sm font-medium text-indigo-700">
-        Back to topics
+        Volver a temas
       </Link>
       <LessonView lesson={lesson} />
     </main>

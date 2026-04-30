@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LessonView } from "@/components/lesson-view";
+import { TopicWorkspace } from "@/components/topics/topic-workspace";
 import { getLessonBySlug, lessons } from "@/lib/lessons";
 
 export function generateStaticParams() {
@@ -24,7 +24,7 @@ export default async function DashboardTopicPage({
       <Link href="/dashboard/topics" className="text-sm font-medium text-indigo-700">
         Volver a temas
       </Link>
-      <LessonView lesson={lesson} />
+      <TopicWorkspace lesson={lesson} />
     </main>
   );
 }

@@ -1,13 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f8ff;
-  --foreground: #1e1b4b;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --muted: #5b5f84;
-  --border: #d9dcff;
-  --primary: #4f46e5;
-  --secondary: #7c3aed;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #1e3a8a;
+  --secondary: #2563eb;
+  --soft-blue: #eff6ff;
 }
 
 @theme inline {
@@ -18,14 +19,14 @@
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-soft-blue: var(--soft-blue);
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), "Segoe UI", Arial, sans-serif;
 }
 
 * {
@@ -33,9 +34,56 @@ body {
 }
 
 .card-surface {
-  @apply rounded-2xl border bg-white shadow-sm shadow-indigo-100/50 transition-all duration-200;
+  @apply rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)] transition-all duration-200;
 }
 
 .gradient-accent {
-  @apply bg-gradient-to-r from-indigo-600 to-violet-500 text-white;
+  @apply bg-gradient-to-r from-blue-700 to-blue-600 text-white;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:from-blue-800 hover:to-blue-700 hover:shadow-md;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-all duration-200 hover:border-slate-400 hover:bg-slate-50;
+}
+
+.hero-surface {
+  background:
+    radial-gradient(1200px 500px at 90% -10%, rgba(37, 99, 235, 0.12), transparent 60%),
+    radial-gradient(800px 400px at -10% 0%, rgba(30, 58, 138, 0.1), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+@keyframes orb-spin {
+  0% {
+    transform: rotateX(18deg) rotateY(-18deg) rotateZ(0deg);
+  }
+  100% {
+    transform: rotateX(18deg) rotateY(-18deg) rotateZ(360deg);
+  }
+}
+
+.logo-3d-orb {
+  width: 92px;
+  height: 92px;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 30% 28%, #ffffff 0%, #dbeafe 24%, #60a5fa 56%, #1d4ed8 100%);
+  box-shadow:
+    0 18px 32px rgba(37, 99, 235, 0.26),
+    inset -8px -10px 16px rgba(29, 78, 216, 0.35),
+    inset 8px 10px 16px rgba(255, 255, 255, 0.45);
+  transform-style: preserve-3d;
+  animation: orb-spin 8s linear infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.smooth-3d {
+  transition: transform 180ms ease-out;
+  will-change: transform;
 }

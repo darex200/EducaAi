@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
-import { buildGuidedReply, buildTutorSystemPrompt, type TutorMessage } from "@/lib/tutor";
+import {
+  buildGuidedReply,
+  buildTutorSystemPrompt,
+  type TutorMessage,
+  type TutorStudentContext,
+} from "@/lib/tutor";
 
 type ChatRequestBody = {
   messages?: TutorMessage[];
+  context?: TutorStudentContext;
 };
 
 type OpenAIMessage = {
@@ -35,10 +41,17 @@ function mapToOpenAIMessages(messages: TutorMessage[]): OpenAIMessage[] {
   });
 }
 
+function normalizeMathFormatting(text: string) {
+  return text
+    .replace(/\\\(([\s\S]*?)\\\)/g, "$$$1$")
+    .replace(/\\\[([\s\S]*?)\\\]/g, "$$$$1$$$$");
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ChatRequestBody;
     const messages = body.messages ?? [];
+    const context = body.context;
     const latestMessages = messages.slice(-10);
     const apiKey = process.env.OPENAI_API_KEY;
 
@@ -53,14 +66,14 @@ export async function POST(request: Request) {
           model: "gpt-4o-mini",
           temperature: 0.6,
           messages: [
-            { role: "system", content: buildTutorSystemPrompt() },
+            { role: "system", content: buildTutorSystemPrompt(context) },
             ...mapToOpenAIMessages(latestMessages),
           ],
         }),
       });
 
       if (!response.ok) {
-        const fallbackReply = buildGuidedReply(latestMessages);
+        const fallbackReply = buildGuidedReply(latestMessages, context);
         return NextResponse.json({
           reply: fallbackReply,
           meta: {
@@ -75,16 +88,17 @@ export async function POST(request: Request) {
       };
 
       const modelReply = data.choices?.[0]?.message?.content?.trim();
+      const formattedReply = modelReply ? normalizeMathFormatting(modelReply) : undefined;
 
       return NextResponse.json({
-        reply: modelReply || buildGuidedReply(latestMessages),
+        reply: formattedReply || buildGuidedReply(latestMessages, context),
         meta: {
           mode: "openai",
         },
       });
     }
 
-    const reply = buildGuidedReply(latestMessages);
+    const reply = buildGuidedReply(latestMessages, context);
 
     return NextResponse.json({
       reply,

@@ -4,6 +4,14 @@ export type TutorMessage = {
   imageDataUrl?: string;
 };
 
+export type TutorStudentContext = {
+  subjects?: string[];
+  level?: string;
+  topic?: string;
+  difficulty?: "basico" | "intermedio" | "avanzado";
+  conversationId?: string;
+};
+
 const forbiddenAnswerPatterns = [
   /\bjust the answer\b/i,
   /\bfinal answer\b/i,
@@ -33,7 +41,7 @@ function inferTopic(text: string) {
   return "tema general";
 }
 
-export function buildGuidedReply(messages: TutorMessage[]) {
+export function buildGuidedReply(messages: TutorMessage[], context?: TutorStudentContext) {
   const lastUserMessage =
     [...messages].reverse().find((message) => message.role === "user")?.content ??
     "Empecemos.";
@@ -42,43 +50,48 @@ export function buildGuidedReply(messages: TutorMessage[]) {
 
   if (askedForDirectAnswer) {
     return [
-      "🧠 Concepto\nPuedo ayudarte, pero no doy respuestas finales directas.",
-      "🪜 Step-by-step\nCuéntame qué intentaste y en qué paso te atascaste.",
-      "❓ Question for student\n¿Cuál fue el último paso correcto que lograste hacer?",
-      "💡 Hint (optional)\nSi no sabes por dónde empezar, identifica primero los datos conocidos y el objetivo.",
+      "Puedo ayudarte, pero no proporciono respuestas finales directas.",
+      "Descríbeme qué intentaste y en qué paso encontraste dificultad.",
+      "¿Cuál fue el último paso correcto que lograste completar?",
     ].join(" ");
   }
 
   return [
-    "🧠 Concepto\nTrabajaremos este problema como aprendizaje guiado.",
-    `🪜 Step-by-step\nTu pregunta fue: "${lastUserMessage}". Parece un tema de ${topic}. Empezaremos por un paso pequeño y verificable.`,
-    "❓ Question for student\n¿Qué regla o fórmula crees que se aplica primero aquí?",
-    "💡 Hint (optional)\nEscribe una primera idea en una sola línea y te ayudo a corregirla.",
+    "Abordaremos este problema mediante aprendizaje guiado.",
+    `Tu consulta fue: "${lastUserMessage}". Parece un tema de ${context?.topic || topic}. Iniciaremos con un primer paso corto y verificable.`,
+    "¿Qué regla, principio o fórmula consideras adecuada para comenzar?",
   ].join(" ");
 }
 
-export function buildTutorSystemPrompt() {
+export function buildTutorSystemPrompt(context?: TutorStudentContext) {
   return [
-    "You are an expert educational tutor. Your goal is NOT to give answers directly, but to guide the student step by step.",
+    "Eres un tutor académico experto. Tu objetivo es guiar al estudiante sin entregar respuestas completas de inmediato.",
     "",
-    "Rules:",
-    "- Ask questions before giving answers",
-    "- Break problems into small steps",
-    "- Encourage thinking",
-    "- If the student is stuck, give hints instead of solutions",
-    "- Be clear, structured, and concise",
-    "- Avoid generic responses",
-    "- Use examples when helpful",
+    "Reglas de respuesta:",
+    "- Explica de forma directa y breve",
+    "- Divide la solución en pasos concretos",
+    "- Evita repetir ideas y evita relleno",
+    "- Si el estudiante se bloquea, da pistas, no la solución completa",
+    "- Incluye un ejemplo corto solo si aporta claridad",
+    "- Cierra con una pregunta de verificación",
     "",
-    "Output format (always use this structure):",
-    "- 🧠 Concept",
-    "- 🪜 Step-by-step",
-    "- ❓ Question for student",
-    "- 💡 Hint (optional)",
+    "Formato:",
+    "- Usa párrafos compactos o listas cortas numeradas",
+    "- No uses encabezados como 'Concepto' o similares",
+    "- Mantén alta densidad de información",
     "",
-    "Additional constraints:",
-    "- Respond ALWAYS in Spanish",
-    "- Adapt explanations to beginner/intermediate/advanced level based on user language",
-    "- Never provide exam cheating help",
+    "Math formatting (critical):",
+    "- Always write mathematical formulas in LaTeX.",
+    "- Use inline formulas with $...$ and block formulas with $$...$$.",
+    "- Never output formulas as plain text with asterisks or malformed symbols.",
+    "",
+    "Contexto del estudiante:",
+    `- Nivel: ${context?.level || "no especificado"}`,
+    `- Tema: ${context?.topic || "no especificado"}`,
+    `- Dificultad: ${context?.difficulty || "basico"}`,
+    `- Conversacion: ${context?.conversationId || "sin-id"}`,
+    "- Responde siempre en español",
+    "- No ayudes a hacer trampa en exámenes",
+    "- Evita repetir exactamente la misma redacción entre respuestas.",
   ].join("\n");
 }

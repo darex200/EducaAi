@@ -1,6 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import ReactMarkdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 import type { TutorMessage } from "@/components/ai-tutor/types";
 
 type MessageBubbleProps = {
@@ -13,7 +16,7 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
   const avatarLabel = isUser ? "Tú" : "IA";
 
   return (
-    <div className={`flex gap-3 transition-opacity duration-300 ${isUser ? "justify-end" : ""}`}>
+    <div className={`flex gap-2 transition-all duration-200 ${isUser ? "justify-end" : ""}`}>
       {!isUser && (
         <div
           className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
@@ -25,12 +28,12 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
       )}
 
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
+        className={`max-w-[86%] rounded-xl px-3.5 py-2.5 text-[14px] leading-6 shadow-sm transition-colors duration-200 ${
           isUser
-            ? "rounded-br-md bg-indigo-600 text-white"
+            ? "bg-gradient-to-r from-blue-700 to-blue-600 text-white"
             : isDarkMode
-              ? "rounded-bl-md border border-slate-700 bg-slate-800 text-slate-100"
-              : "rounded-bl-md border border-indigo-100 bg-white text-slate-700"
+              ? "border border-slate-700/70 bg-slate-800/90 text-slate-100 shadow-slate-900/30"
+              : "border border-slate-200 bg-white text-slate-700"
         }`}
       >
         {message.imageDataUrl && (
@@ -43,7 +46,11 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
             unoptimized
           />
         )}
-        <p className="whitespace-pre-wrap">{message.content}</p>
+        <div className="prose prose-sm max-w-none whitespace-pre-wrap dark:prose-invert">
+          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+            {message.content}
+          </ReactMarkdown>
+        </div>
       </div>
 
       {isUser && (

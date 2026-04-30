@@ -12,7 +12,7 @@ const initialMessages: ChatMessage[] = [
   {
     role: "assistant",
     content:
-      "Hi! I am your Educa AI tutor. I provide general learning guidance, ask questions, and help you think step by step without giving direct final answers.",
+      "Hola. Soy tu tutor IA de Educa. Te doy orientacion general, hago preguntas y te ayudo a pensar paso a paso sin darte respuestas finales directas.",
   },
 ];
 
@@ -47,10 +47,10 @@ export function ChatWindow() {
       const data = (await response.json()) as { reply?: string };
       const reply =
         data.reply ??
-        "I could not generate a response this time. Please try your question again.";
+        "No pude generar una respuesta esta vez. Intenta tu pregunta de nuevo.";
       setMessages((current) => [...current, { role: "assistant", content: reply }]);
     } catch {
-      setError("Message failed to send. Check your connection and try again.");
+      setError("No se pudo enviar el mensaje. Revisa tu conexion e intenta otra vez.");
     } finally {
       setIsSending(false);
     }
@@ -59,9 +59,9 @@ export function ChatWindow() {
   return (
     <section className="card-surface flex h-[72vh] flex-col overflow-hidden">
       <div className="border-b bg-gradient-to-r from-indigo-100/70 via-white to-violet-100/70 px-4 py-3">
-        <p className="text-sm font-medium text-indigo-800">Student Support Mode</p>
+        <p className="text-sm font-medium text-indigo-800">Modo de apoyo al estudiante</p>
         <p className="text-xs text-slate-600">
-          General explanations only. You do the thinking, and I guide each step.
+          Solo explicaciones generales. Tu haces el razonamiento y yo guio cada paso.
         </p>
       </div>
 
@@ -78,14 +78,14 @@ export function ChatWindow() {
             {message.content}
           </div>
         ))}
-        {isSending && <LoadingSpinner label="Tutor is thinking..." />}
+        {isSending && <LoadingSpinner label="El tutor esta pensando..." />}
       </div>
 
       <form onSubmit={handleSend} className="flex gap-2 border-t bg-white p-3">
         <input
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask for guidance (example: help me understand this topic step by step)"
+          placeholder="Pide orientacion (ejemplo: ayudame a entender este tema paso a paso)"
           className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none ring-indigo-300 transition focus:ring-2"
         />
         <button
@@ -93,7 +93,7 @@ export function ChatWindow() {
           disabled={isSending}
           className="gradient-accent rounded-xl px-4 py-2 text-sm font-medium transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Send
+          Enviar
         </button>
       </form>
       {error && <p className="px-3 pb-3 text-xs text-red-600">{error}</p>}

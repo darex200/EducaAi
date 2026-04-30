@@ -38,7 +38,7 @@ export async function POST(request: Request) {
           reply: fallbackReply,
           meta: {
             mode: "guided-fallback",
-            note: `OpenAI request failed with status ${response.status}.`,
+            note: `La solicitud a OpenAI fallo con estado ${response.status}.`,
           },
         });
       }
@@ -63,14 +63,14 @@ export async function POST(request: Request) {
       reply,
       meta: {
         mode: "guided",
-        note: "Set OPENAI_API_KEY to enable live AI responses.",
+        note: "Define OPENAI_API_KEY para habilitar respuestas IA en vivo.",
       },
     });
   } catch {
     return NextResponse.json(
       {
         reply:
-          "I ran into a temporary issue. Please resend your question and I will guide you step by step.",
+          "Tuve un problema temporal. Reenvia tu pregunta y te guiare paso a paso.",
         meta: {
           mode: "error",
         },

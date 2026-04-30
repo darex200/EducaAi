@@ -5,6 +5,36 @@ type ChatRequestBody = {
   messages?: TutorMessage[];
 };
 
+type OpenAIMessage = {
+  role: "user" | "assistant" | "system";
+  content:
+    | string
+    | Array<
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } }
+      >;
+};
+
+function mapToOpenAIMessages(messages: TutorMessage[]): OpenAIMessage[] {
+  return messages.map((message) => {
+    if (message.role === "assistant") {
+      return { role: "assistant", content: message.content };
+    }
+
+    if (message.imageDataUrl) {
+      return {
+        role: "user",
+        content: [
+          { type: "text", text: message.content || "Analiza esta imagen y guíame como tutor." },
+          { type: "image_url", image_url: { url: message.imageDataUrl } },
+        ],
+      };
+    }
+
+    return { role: "user", content: message.content };
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ChatRequestBody;
@@ -24,10 +54,7 @@ export async function POST(request: Request) {
           temperature: 0.6,
           messages: [
             { role: "system", content: buildTutorSystemPrompt() },
-            ...latestMessages.map((message) => ({
-              role: message.role,
-              content: message.content,
-            })),
+            ...mapToOpenAIMessages(latestMessages),
           ],
         }),
       });
@@ -63,7 +90,7 @@ export async function POST(request: Request) {
       reply,
       meta: {
         mode: "guided",
-        note: "Define OPENAI_API_KEY para habilitar respuestas IA en vivo.",
+        note: "Define OPENAI_API_KEY para habilitar respuestas IA en vivo con texto e imagen.",
       },
     });
   } catch {

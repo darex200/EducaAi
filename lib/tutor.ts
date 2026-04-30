@@ -1,6 +1,7 @@
 export type TutorMessage = {
   role: "user" | "assistant";
   content: string;
+  imageDataUrl?: string;
 };
 
 const forbiddenAnswerPatterns = [
@@ -41,26 +42,43 @@ export function buildGuidedReply(messages: TutorMessage[]) {
 
   if (askedForDirectAnswer) {
     return [
-      "Puedo ayudarte, pero no voy a dar respuestas finales directas.",
-      "Hagamoslo en modo aprendizaje: cuentame que intentaste y en que parte te atascaste.",
-      "Luego te guio con pistas y un checkpoint pequeno a la vez.",
+      "🧠 Concepto\nPuedo ayudarte, pero no doy respuestas finales directas.",
+      "🪜 Step-by-step\nCuéntame qué intentaste y en qué paso te atascaste.",
+      "❓ Question for student\n¿Cuál fue el último paso correcto que lograste hacer?",
+      "💡 Hint (optional)\nSi no sabes por dónde empezar, identifica primero los datos conocidos y el objetivo.",
     ].join(" ");
   }
 
   return [
-    "Buen esfuerzo. Te guiare con explicaciones generales para que construyas la respuesta por tu cuenta.",
-    `Preguntaste: "${lastUserMessage}". Esto parece una pregunta de ${topic}.`,
-    "Empieza con un paso corto, explica tu razonamiento y te ayudo a mejorar el siguiente paso.",
+    "🧠 Concepto\nTrabajaremos este problema como aprendizaje guiado.",
+    `🪜 Step-by-step\nTu pregunta fue: "${lastUserMessage}". Parece un tema de ${topic}. Empezaremos por un paso pequeño y verificable.`,
+    "❓ Question for student\n¿Qué regla o fórmula crees que se aplica primero aquí?",
+    "💡 Hint (optional)\nEscribe una primera idea en una sola línea y te ayudo a corregirla.",
   ].join(" ");
 }
 
 export function buildTutorSystemPrompt() {
   return [
-    "Eres el Tutor IA de Educa, un tutor de apoyo para estudiantes.",
-    "Responde SIEMPRE en espanol.",
-    "Nunca des respuestas finales directas, soluciones completas ni ayuda para hacer trampa en examenes.",
-    "Usa pistas cortas, preguntas de reflexion y guia paso a paso.",
-    "Si el estudiante pide la respuesta directa, rechaza y redirige a pasos de aprendizaje.",
-    "Manten un tono motivador, claro y apropiado para estudiantes.",
-  ].join(" ");
+    "You are an expert educational tutor. Your goal is NOT to give answers directly, but to guide the student step by step.",
+    "",
+    "Rules:",
+    "- Ask questions before giving answers",
+    "- Break problems into small steps",
+    "- Encourage thinking",
+    "- If the student is stuck, give hints instead of solutions",
+    "- Be clear, structured, and concise",
+    "- Avoid generic responses",
+    "- Use examples when helpful",
+    "",
+    "Output format (always use this structure):",
+    "- 🧠 Concept",
+    "- 🪜 Step-by-step",
+    "- ❓ Question for student",
+    "- 💡 Hint (optional)",
+    "",
+    "Additional constraints:",
+    "- Respond ALWAYS in Spanish",
+    "- Adapt explanations to beginner/intermediate/advanced level based on user language",
+    "- Never provide exam cheating help",
+  ].join("\n");
 }

@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { InputBar } from "@/components/ai-tutor/input-bar";
-import { ChatHeader } from "@/components/ai-tutor/chat-header";
-import { MessageBubble } from "@/components/ai-tutor/message-bubble";
-import { TutorSidebar } from "@/components/ai-tutor/tutor-sidebar";
+import { AppLayout } from "@/components/chat/app-layout";
+import { Sidebar } from "@/components/chat/sidebar";
+import { ChatWindow } from "@/components/chat/chat-window";
+import { ChatInput } from "@/components/chat/chat-input";
+import { QuizModal } from "@/components/chat/quiz-modal";
+import { ContentViewer } from "@/components/chat/content-viewer";
+import { GuidedPractice } from "@/components/chat/guided-practice";
 import { TopicSelector } from "@/components/onboarding/topic-selector";
 import { useLearning } from "@/context/learning-context";
 import type { TutorMessage } from "@/components/ai-tutor/types";
+import { lessons } from "@/lib/lessons";
 
 const CHAT_STORAGE_KEY = "educa-ai-chat-state";
 
@@ -63,15 +67,45 @@ export function ChatContainer() {
     return localStorage.getItem("educa-ai-dark-mode") === "1";
   });
   const [showTopicSelector, setShowTopicSelector] = useState(false);
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [isContentLoading, setIsContentLoading] = useState(false);
+  const [showGuidedPractice, setShowGuidedPractice] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [content, setContent] = useState<{
+    title?: string;
+    summary?: string;
+    examples?: string[];
+    references?: string[];
+    articles?: string[];
+    explanations?: string[];
+  } | null>(null);
   const [conversationId, setConversationId] = useState(() => {
     if (typeof window === "undefined") return `conv-${Date.now()}`;
     return localStorage.getItem("educa-ai-conversation-id") || `conv-${Date.now()}`;
   });
   const endRef = useRef<HTMLDivElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const dynamicTopics = useMemo(
+    () =>
+      lessons.map((lesson, index) => ({
+        id: lesson.slug,
+        title: lesson.title,
+        description: lesson.explanation,
+        category: ["Ciencias", "Matematicas", "Lenguaje", "Historia", "Tecnologia"][index % 5],
+        difficulty: (["basico", "intermedio", "avanzado"] as const)[index % 3],
+      })),
+    [],
+  );
+  const [selectedTopicId, setSelectedTopicId] = useState(() => dynamicTopics[0]?.id ?? "math");
+  const selectedTopic = useMemo(
+    () => dynamicTopics.find((topic) => topic.id === selectedTopicId) ?? dynamicTopics[0],
+    [dynamicTopics, selectedTopicId],
+  );
 
   useEffect(() => {
+    if (!shouldAutoScroll) return;
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isSending]);
+  }, [messages, isSending, shouldAutoScroll]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -129,7 +163,7 @@ export function ChatContainer() {
           context: {
             subjects: profile.subjects,
             level: profile.level,
-            topic: profile.topic,
+            topic: selectedTopic?.title || profile.topic,
             difficulty: profile.difficulty,
             conversationId,
           },
@@ -154,24 +188,37 @@ export function ChatContainer() {
     }
   };
 
-  return (
-    <section className="mx-auto w-full max-w-[1600px]">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tutor IA</h2>
-        <button
-          onClick={() => setIsDarkMode((v) => !v)}
-          className={`rounded-lg border px-3 py-1.5 text-xs transition-colors duration-300 ${
-            isDarkMode
-              ? "border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-          }`}
-        >
-          {isDarkMode ? "Modo claro" : "Modo oscuro"}
-        </button>
-      </div>
+  const exploreContent = async () => {
+    if (!selectedTopic) return;
+    setIsContentLoading(true);
+    const res = await fetch("/api/topic-tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "content",
+        topic: selectedTopic.title,
+        level: "intermedio",
+        difficulty: selectedTopic.difficulty,
+      }),
+    });
+    const data = (await res.json()) as {
+      content?: { title?: string; summary?: string; examples?: string[]; references?: string[] };
+    };
+    setContent(data.content ? { ...data.content, explanations: [data.content.summary ?? ""], articles: data.content.references ?? [] } : null);
+    setIsContentLoading(false);
+  };
 
-      <div className="flex gap-4">
-        <TutorSidebar
+  const handleBodyScroll = () => {
+    const node = bodyRef.current;
+    if (!node) return;
+    const distanceToBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
+    setShouldAutoScroll(distanceToBottom < 80);
+  };
+
+  return (
+    <AppLayout
+      sidebar={
+        <Sidebar
           isDarkMode={isDarkMode}
           onNewChat={() => {
             if (!profile.topic) {
@@ -182,51 +229,52 @@ export function ChatContainer() {
             setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
             setError(null);
           }}
+          onChooseTopic={() => setShowTopicSelector((v) => !v)}
+          onToggleTheme={() => setIsDarkMode((v) => !v)}
+          onGenerateQuiz={() => setIsQuizOpen(true)}
+          onExploreContent={exploreContent}
+          onToggleGuidedPractice={() => setShowGuidedPractice((v) => !v)}
+          practiceEnabled={showGuidedPractice}
+          topics={dynamicTopics}
+          selectedTopicId={selectedTopicId}
+          onSelectTopic={setSelectedTopicId}
         />
-
-        <div
-          className={`flex h-[86vh] w-full flex-col overflow-hidden rounded-2xl border transition-colors duration-300 ${containerClass}`}
-        >
-          <ChatHeader
-            title="Asistente de aprendizaje guiado"
-            subtitle={`Tema: ${profile.topic || "No seleccionado"} · Nivel: ${profile.level || "No definido"} · Dificultad: ${profile.difficulty}`}
-            isDarkMode={isDarkMode}
-            onChooseTopic={() => setShowTopicSelector((v) => !v)}
-          />
-          {showTopicSelector && (
-            <div className={`px-4 pt-3 ${isDarkMode ? "bg-slate-900" : "bg-slate-50"}`}>
-              <TopicSelector
-                onApply={(topic) => {
-                  setShowTopicSelector(false);
-                  setMessages([getWelcomeMessage(topic)]);
-                  setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-                }}
-              />
+      }
+    >
+      <div className={`h-full ${containerClass}`}>
+        <ChatWindow
+          messages={messages}
+          isSending={isSending}
+          isDarkMode={isDarkMode}
+          topicLabel={selectedTopic?.title || profile.topic || "No seleccionado"}
+          levelLabel={profile.level || "No definido"}
+          difficultyLabel={selectedTopic?.difficulty || profile.difficulty}
+          showTopicSelector={showTopicSelector}
+          topicSelector={
+            <TopicSelector
+              onApply={(topic) => {
+                setShowTopicSelector(false);
+                setMessages([getWelcomeMessage(topic)]);
+                setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+              }}
+            />
+          }
+          toolsPanel={
+            <div className="space-y-3">
+              <ContentViewer data={content} loading={isContentLoading} />
+              {showGuidedPractice && selectedTopic && <GuidedPractice topic={selectedTopic.title} />}
             </div>
-          )}
-
-          <div
-            className={`flex-1 space-y-2 overflow-y-auto px-4 py-4 transition-colors duration-300 ${
-              isDarkMode ? "bg-gradient-to-b from-slate-900 to-slate-950" : "bg-blue-50/35"
-            }`}
-          >
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} isDarkMode={isDarkMode} />
-            ))}
-
-            {isSending && (
-              <div className="flex items-center gap-3 text-sm text-slate-500">
-                <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-slate-400" />
-                <span>Generando respuesta...</span>
-              </div>
-            )}
-            <div ref={endRef} />
-          </div>
-
-          <InputBar onSend={handleSend} disabled={isSending} isDarkMode={isDarkMode} />
-          {error && <p className="px-4 pb-3 text-xs text-red-500">{error}</p>}
-        </div>
+          }
+          input={<ChatInput onSend={handleSend} disabled={isSending} isDarkMode={isDarkMode} />}
+          endRef={endRef}
+          bodyRef={bodyRef}
+          onBodyScroll={handleBodyScroll}
+          error={error}
+        />
+        {selectedTopic && (
+          <QuizModal topic={selectedTopic.title} isOpen={isQuizOpen} onClose={() => setIsQuizOpen(false)} />
+        )}
       </div>
-    </section>
+    </AppLayout>
   );
 }

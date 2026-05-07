@@ -43,8 +43,11 @@ function mapToOpenAIMessages(messages: TutorMessage[]): OpenAIMessage[] {
 
 function normalizeMathFormatting(text: string) {
   return text
-    .replace(/\\\(([\s\S]*?)\\\)/g, "$$$1$")
-    .replace(/\\\[([\s\S]*?)\\\]/g, "$$$$1$$$$");
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_match, expr: string) => `$${expr.trim()}$`)
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_match, expr: string) => `$$${expr.trim()}$$`)
+    .replace(/^\s*\*{3,}\s*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export async function POST(request: Request) {
@@ -56,6 +59,7 @@ export async function POST(request: Request) {
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (apiKey) {
+      const hasImage = latestMessages.some((message) => Boolean(message.imageDataUrl));
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -64,9 +68,21 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          temperature: 0.6,
+          temperature: 0.35,
           messages: [
-            { role: "system", content: buildTutorSystemPrompt(context) },
+            {
+              role: "system",
+              content: `${buildTutorSystemPrompt(context)}\n- Prioriza respuestas concretas y evaluables.\n- Si la pregunta es matematica, verifica consistencia simbolica antes de responder.`,
+            },
+            ...(hasImage
+              ? [
+                  {
+                    role: "system",
+                    content:
+                      "El estudiante adjunto una imagen. Analiza visualmente el contenido (ejercicio, diagrama o problema) y usalo como parte principal de la respuesta.",
+                  },
+                ]
+              : []),
             ...mapToOpenAIMessages(latestMessages),
           ],
         }),

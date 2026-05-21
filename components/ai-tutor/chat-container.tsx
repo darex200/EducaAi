@@ -102,10 +102,21 @@ export function ChatContainer() {
     [dynamicTopics, selectedTopicId],
   );
 
+  const scrollChatToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const node = bodyRef.current;
+    if (!node) return;
+    node.scrollTo({ top: node.scrollHeight, behavior });
+  };
+
   useEffect(() => {
     if (!shouldAutoScroll) return;
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const frame = requestAnimationFrame(() => scrollChatToBottom("smooth"));
+    return () => cancelAnimationFrame(frame);
   }, [messages, isSending, shouldAutoScroll]);
+
+  useEffect(() => {
+    scrollChatToBottom("smooth");
+  }, [selectedTopicId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -121,14 +132,6 @@ export function ChatContainer() {
     if (typeof window === "undefined") return;
     localStorage.setItem("educa-ai-conversation-id", conversationId);
   }, [conversationId]);
-
-  const containerClass = useMemo(
-    () =>
-      isDarkMode
-        ? "border-slate-700/80 bg-slate-950 text-slate-100 shadow-xl shadow-slate-950/30"
-        : "border-slate-200 bg-white text-slate-900 shadow-lg shadow-slate-200/50",
-    [isDarkMode],
-  );
 
   const handleSend = async ({
     text,
@@ -217,6 +220,7 @@ export function ChatContainer() {
 
   return (
     <AppLayout
+      isDarkMode={isDarkMode}
       sidebar={
         <Sidebar
           isDarkMode={isDarkMode}
@@ -241,7 +245,7 @@ export function ChatContainer() {
         />
       }
     >
-      <div className={`h-full ${containerClass}`}>
+      <div className="h-full min-h-0">
         <ChatWindow
           messages={messages}
           isSending={isSending}
@@ -261,8 +265,10 @@ export function ChatContainer() {
           }
           toolsPanel={
             <div className="space-y-3">
-              <ContentViewer data={content} loading={isContentLoading} />
-              {showGuidedPractice && selectedTopic && <GuidedPractice topic={selectedTopic.title} />}
+              <ContentViewer data={content} loading={isContentLoading} isDarkMode={isDarkMode} />
+              {showGuidedPractice && selectedTopic && (
+                <GuidedPractice topic={selectedTopic.title} isDarkMode={isDarkMode} />
+              )}
             </div>
           }
           input={<ChatInput onSend={handleSend} disabled={isSending} isDarkMode={isDarkMode} />}

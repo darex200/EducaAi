@@ -10,7 +10,7 @@ type FormulaRendererProps = {
 
 export function FormulaRenderer({ content }: FormulaRendererProps) {
   return (
-    <div className="prose prose-sm max-w-none whitespace-pre-wrap dark:prose-invert">
+    <div className="chat-prose prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2">
       <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
         {content}
       </ReactMarkdown>

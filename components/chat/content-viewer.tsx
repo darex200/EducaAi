@@ -12,13 +12,24 @@ type ContentData = {
 type ContentViewerProps = {
   data: ContentData | null;
   loading: boolean;
+  isDarkMode?: boolean;
 };
 
-export function ContentViewer({ data, loading }: ContentViewerProps) {
+export function ContentViewer({ data, loading, isDarkMode = false }: ContentViewerProps) {
+  const card = isDarkMode
+    ? "border-slate-700/80 bg-slate-800/60 text-slate-200"
+    : "border-slate-200/80 bg-white text-slate-700 shadow-sm";
+
+  const label = isDarkMode ? "text-slate-500" : "text-slate-500";
+  const title = isDarkMode ? "text-slate-100" : "text-slate-900";
+
   if (loading) {
     return (
-      <article className="rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-sm text-slate-500">Generando explicaciones y contenido...</p>
+      <article className={`rounded-2xl border p-5 ${card}`}>
+        <div className="flex items-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+          <p className="text-sm">Generando explicaciones y contenido…</p>
+        </div>
       </article>
     );
   }
@@ -29,34 +40,43 @@ export function ContentViewer({ data, loading }: ContentViewerProps) {
   const explanationItems = data.explanations?.length ? data.explanations : data.summary ? [data.summary] : [];
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-2 text-lg font-semibold text-slate-900">{data.title ?? "Contenido del tema"}</h3>
-      <p className="mb-4 text-sm leading-6 text-slate-700">{data.summary}</p>
+    <article className={`rounded-2xl border p-5 ${card}`}>
+      <h3 className={`mb-2 text-base font-semibold tracking-tight ${title}`}>{data.title ?? "Contenido del tema"}</h3>
+      <p className="mb-4 text-sm leading-relaxed opacity-90">{data.summary}</p>
 
       <section className="mb-4">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Explicaciones</p>
-        <ul className="space-y-1 text-sm text-slate-700">
+        <p className={`mb-2 text-[10px] font-semibold uppercase tracking-widest ${label}`}>Explicaciones</p>
+        <ul className="space-y-1.5 text-sm">
           {explanationItems.map((item) => (
-            <li key={item}>- {item}</li>
+            <li key={item} className="flex gap-2">
+              <span className="text-blue-500">·</span>
+              <span>{item}</span>
+            </li>
           ))}
         </ul>
       </section>
 
       <section className="mb-4">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Articulos</p>
-        <ul className="space-y-1 text-sm text-slate-700">
+        <p className={`mb-2 text-[10px] font-semibold uppercase tracking-widest ${label}`}>Artículos</p>
+        <ul className="space-y-1.5 text-sm">
           {articleItems.map((item) => (
-            <li key={item}>- {item}</li>
+            <li key={item} className="flex gap-2">
+              <span className="text-blue-500">·</span>
+              <span>{item}</span>
+            </li>
           ))}
         </ul>
       </section>
 
       {!!data.examples?.length && (
         <section className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Ejemplos</p>
-          <ul className="space-y-1 text-sm text-slate-700">
+          <p className={`mb-2 text-[10px] font-semibold uppercase tracking-widest ${label}`}>Ejemplos</p>
+          <ul className="space-y-1.5 text-sm">
             {data.examples.map((example) => (
-              <li key={example}>- {example}</li>
+              <li key={example} className="flex gap-2">
+                <span className="text-blue-500">·</span>
+                <span>{example}</span>
+              </li>
             ))}
           </ul>
         </section>
@@ -64,10 +84,13 @@ export function ContentViewer({ data, loading }: ContentViewerProps) {
 
       {!!data.references?.length && (
         <section>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Referencias</p>
-          <ul className="space-y-1 text-sm text-slate-700">
+          <p className={`mb-2 text-[10px] font-semibold uppercase tracking-widest ${label}`}>Referencias</p>
+          <ul className="space-y-1.5 text-sm">
             {data.references.map((reference) => (
-              <li key={reference}>- {reference}</li>
+              <li key={reference} className="flex gap-2">
+                <span className="text-blue-500">·</span>
+                <span>{reference}</span>
+              </li>
             ))}
           </ul>
         </section>

@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type QuizQuestion = {
-  id: string;
-  type: "opcion_multiple" | "abierta" | "mixto" | string;
-  question: string;
-  options?: string[];
-  answer?: string;
-};
+import { useCallback, useEffect, useState } from "react";
+import {
+  getQuestionResult,
+  type QuizDifficulty,
+  type QuizQuestion,
+  type QuizQuestionType,
+  type SchoolLevel,
+} from "@/lib/quiz";
 
 type QuizGeneratorModalProps = {
   topic: string;
@@ -17,9 +16,9 @@ type QuizGeneratorModalProps = {
 };
 
 export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModalProps) {
-  const [level, setLevel] = useState("secundaria");
-  const [difficulty, setDifficulty] = useState<"basico" | "intermedio" | "avanzado">("intermedio");
-  const [questionType, setQuestionType] = useState<"opcion_multiple" | "abiertas" | "mixto">("mixto");
+  const [level, setLevel] = useState<SchoolLevel>("secundaria");
+  const [difficulty, setDifficulty] = useState<QuizDifficulty>("intermedio");
+  const [questionType, setQuestionType] = useState<QuizQuestionType>("mixto");
   const [questionCount, setQuestionCount] = useState(5);
   const [subtopicsInput, setSubtopicsInput] = useState("");
   const [generatedSubtopics, setGeneratedSubtopics] = useState<string[]>([]);
@@ -29,71 +28,71 @@ export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModa
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const score = quiz.reduce((acc, question) => {
+    return acc + (getQuestionResult(question, answers[question.id] ?? "") === "correcta" ? 1 : 0);
+  }, 0);
 
   const generateQuiz = async () => {
     setQuiz([]);
     setAnswers({});
     setIsChecked(false);
     setIsGenerating(true);
-    const res = await fetch("/api/topic-tools", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "quiz",
-        topic,
-        level,
-        difficulty,
-        questionType,
-        questionCount,
-        subtopics: subtopicsInput
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-      }),
-    });
-    const data = (await res.json()) as { quiz?: QuizQuestion[] };
-    setQuiz(data.quiz ?? []);
-    setIsGenerating(false);
-    setShowConfig(false);
-  };
-
-  const getQuestionResult = (question: QuizQuestion) => {
-    const userAnswer = (answers[question.id] ?? "").trim().toLowerCase();
-    const expected = (question.answer ?? "").trim().toLowerCase();
-    if (!userAnswer) return "sin-responder";
-    if (!expected) return "sin-clave";
-    return userAnswer === expected ? "correcta" : "incorrecta";
-  };
-
-  const score = quiz.reduce((acc, question) => {
-    return acc + (getQuestionResult(question) === "correcta" ? 1 : 0);
-  }, 0);
-
-  const loadSubtopics = async () => {
-    setIsLoadingSubtopics(true);
-    const res = await fetch("/api/topic-tools", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "subtopics",
-        topic,
-        level,
-      }),
-    });
-    const data = (await res.json()) as { subtopics?: string[] };
-    const items = data.subtopics ?? [];
-    setGeneratedSubtopics(items);
-    if (items.length) {
-      setSubtopicsInput(items.slice(0, 3).join(", "));
+    setError(null);
+    try {
+      const res = await fetch("/api/topic-tools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "quiz",
+          topic,
+          level,
+          difficulty,
+          questionType,
+          questionCount: Math.max(3, Math.min(20, questionCount)),
+          subtopics: subtopicsInput
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        }),
+      });
+      const data = (await res.json()) as { quiz?: QuizQuestion[]; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "No se pudo generar el cuestionario.");
+      if (!data.quiz?.length) throw new Error("Cuestionario vacío. Intenta de nuevo.");
+      setQuiz(data.quiz);
+      setShowConfig(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al generar.");
+    } finally {
+      setIsGenerating(false);
     }
-    setIsLoadingSubtopics(false);
   };
+
+  const loadSubtopics = useCallback(async () => {
+    setIsLoadingSubtopics(true);
+    try {
+      const res = await fetch("/api/topic-tools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "subtopics", topic, level }),
+      });
+      const data = (await res.json()) as { subtopics?: string[] };
+      const items = data.subtopics ?? [];
+      setGeneratedSubtopics(items);
+      if (items.length) setSubtopicsInput(items.slice(0, 3).join(", "));
+    } finally {
+      setIsLoadingSubtopics(false);
+    }
+  }, [topic, level]);
 
   useEffect(() => {
     if (!isOpen || !showConfig) return;
-    void loadSubtopics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, showConfig, level, topic]);
+    const timer = window.setTimeout(() => {
+      void loadSubtopics();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, showConfig, level, topic, loadSubtopics]);
 
   if (!isOpen) return null;
 
@@ -109,6 +108,11 @@ export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModa
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           {showConfig ? (
             <div className="space-y-4">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -118,7 +122,7 @@ export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModa
                 <div className="grid gap-3 sm:grid-cols-2">
                 <select
                   value={level}
-                  onChange={(e) => setLevel(e.target.value)}
+                  onChange={(e) => setLevel(e.target.value as SchoolLevel)}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
                   <option value="primaria">Primaria</option>
@@ -128,7 +132,7 @@ export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModa
                 </select>
                 <select
                   value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as "basico" | "intermedio" | "avanzado")}
+                  onChange={(e) => setDifficulty(e.target.value as QuizDifficulty)}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
                   <option value="basico">Básico</option>
@@ -137,7 +141,7 @@ export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModa
                 </select>
                 <select
                   value={questionType}
-                  onChange={(e) => setQuestionType(e.target.value as "opcion_multiple" | "abiertas" | "mixto")}
+                  onChange={(e) => setQuestionType(e.target.value as QuizQuestionType)}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
                   <option value="opcion_multiple">Opción múltiple</option>
@@ -239,7 +243,7 @@ export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModa
 
               <div className="mt-5 max-h-[45vh] space-y-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4">
                 {quiz.map((q, idx) => (
-                  <div key={q.id || `${idx}`} className="rounded-lg border border-slate-200 bg-white p-3">
+                  <div key={q.id} className="rounded-lg border border-slate-200 bg-white p-3">
                     <p className="mb-2 text-sm font-medium text-slate-900">
                       {idx + 1}. {q.question}
                     </p>
@@ -268,23 +272,26 @@ export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModa
                       />
                     )}
 
-                    {isChecked && (
+                    {isChecked && (() => {
+                      const result = getQuestionResult(q, answers[q.id] ?? "");
+                      return (
                       <p
                         className={`mt-2 text-xs font-medium ${
-                          getQuestionResult(q) === "correcta"
+                          result === "correcta"
                             ? "text-green-600"
-                            : getQuestionResult(q) === "incorrecta"
+                            : result === "incorrecta"
                               ? "text-red-600"
                               : "text-slate-500"
                         }`}
                       >
-                        {getQuestionResult(q) === "correcta" && "Respuesta correcta"}
-                        {getQuestionResult(q) === "incorrecta" &&
+                        {result === "correcta" && "Respuesta correcta"}
+                        {result === "incorrecta" &&
                           `Respuesta incorrecta${q.answer ? `. Respuesta sugerida: ${q.answer}` : ""}`}
-                        {getQuestionResult(q) === "sin-responder" && "Sin responder"}
-                        {getQuestionResult(q) === "sin-clave" && "Respuesta registrada"}
+                        {result === "sin-responder" && "Sin responder"}
+                        {result === "sin-clave" && "Respuesta registrada"}
                       </p>
-                    )}
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

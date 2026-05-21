@@ -32,26 +32,32 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
     setImageFile(null);
   };
 
+  const bar = isDarkMode
+    ? "border-slate-800 bg-slate-900/95"
+    : "border-slate-100/90 bg-white/90";
+
+  const composer = isDarkMode
+    ? "border-slate-700 bg-slate-800/80 shadow-[0_4px_24px_rgba(0,0,0,0.25)]"
+    : "border-slate-200/90 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.06)]";
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={`sticky bottom-0 border-t px-4 pb-4 pt-3 backdrop-blur ${
-        isDarkMode ? "border-slate-700 bg-slate-900/95" : "border-blue-100 bg-white/95"
-      }`}
-    >
+    <form onSubmit={handleSubmit} className={`border-t px-4 pb-4 pt-3 backdrop-blur-md sm:px-6 ${bar}`}>
       {imagePreviewUrl && (
-        <ImageUpload
-          imageFile={imageFile}
-          imagePreviewUrl={imagePreviewUrl}
-          disabled={disabled}
-          onFileChange={setImageFile}
-          inputId="chat-image-upload-main"
-          includeInput={false}
-          showButton={false}
-          showPreview
-        />
+        <div className="mb-3">
+          <ImageUpload
+            imageFile={imageFile}
+            imagePreviewUrl={imagePreviewUrl}
+            disabled={disabled}
+            onFileChange={setImageFile}
+            inputId="chat-image-upload-main"
+            includeInput={false}
+            showButton={false}
+            showPreview
+            isDarkMode={isDarkMode}
+          />
+        </div>
       )}
-      <div className={`flex items-center gap-2 rounded-xl border px-2 py-2 shadow-sm ${isDarkMode ? "border-slate-600 bg-slate-800" : "border-blue-200 bg-blue-50/40"}`}>
+      <div className={`flex items-end gap-2 rounded-2xl border p-2 transition-shadow focus-within:ring-2 focus-within:ring-blue-500/25 ${composer}`}>
         <ImageUpload
           imageFile={imageFile}
           imagePreviewUrl={null}
@@ -61,18 +67,38 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
           includeInput
           showButton
           showPreview={false}
+          isDarkMode={isDarkMode}
         />
-        <input
+        <textarea
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder="Pregunta con claridad, sube una imagen o continúa tu conversación..."
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
+          }}
+          rows={1}
+          placeholder="Pregunta con claridad, adjunta una imagen o continúa tu conversación…"
           disabled={disabled}
-          className={`w-full rounded-lg border px-4 py-2 text-sm outline-none focus:ring-2 ${isDarkMode ? "border-slate-600 bg-slate-900 text-slate-100 ring-blue-400" : "border-slate-300 bg-white text-slate-700 ring-blue-200"}`}
+          className={`max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border-0 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:opacity-60 ${
+            isDarkMode ? "text-slate-100 placeholder:text-slate-500" : "text-slate-800 placeholder:text-slate-400"
+          }`}
         />
-        <button type="submit" disabled={disabled} className="rounded-lg bg-gradient-to-r from-blue-700 to-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-          Enviar
+        <button
+          type="submit"
+          disabled={disabled || (!text.trim() && !imageFile)}
+          className="btn-hover-primary relative mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Enviar mensaje"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
         </button>
       </div>
+      <p className={`mt-2 text-center text-[10px] ${isDarkMode ? "text-slate-600" : "text-slate-400"}`}>
+        Enter para enviar · Shift+Enter para nueva línea
+      </p>
     </form>
   );
 }

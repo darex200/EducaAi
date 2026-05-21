@@ -91,7 +91,10 @@ export function QuizGeneratorModal({ topic, isOpen, onClose }: QuizGeneratorModa
 
   useEffect(() => {
     if (!isOpen || !showConfig) return;
-    void loadSubtopics();
+    const timeoutId = window.setTimeout(() => {
+      void loadSubtopics();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, showConfig, level, topic]);
 

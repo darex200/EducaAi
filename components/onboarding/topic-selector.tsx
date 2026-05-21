@@ -9,7 +9,7 @@ type TopicSelectorProps = {
 
 export function TopicSelector({ onApply }: TopicSelectorProps) {
   const { profile, setProfile } = useLearning();
-  const [topic, setTopic] = useState(profile.topic || profile.generatedTopics[0] || "");
+  const [topic, setTopic] = useState(profile.topic || "");
   const [difficulty, setDifficulty] = useState(profile.difficulty || "basico");
 
   if (!profile.generatedTopics.length) return null;
@@ -23,6 +23,10 @@ export function TopicSelector({ onApply }: TopicSelectorProps) {
           onChange={(event) => setTopic(event.target.value)}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         >
+          <option value="">Elige un tema</option>
+          {profile.topic && !profile.generatedTopics.includes(profile.topic) && (
+            <option value={profile.topic}>{profile.topic}</option>
+          )}
           {profile.generatedTopics.map((item) => (
             <option key={item} value={item}>
               {item}
@@ -42,10 +46,12 @@ export function TopicSelector({ onApply }: TopicSelectorProps) {
       <div className="mt-3 flex justify-end">
         <button
           onClick={() => {
+            if (!topic) return;
             setProfile({ topic, difficulty });
             onApply(topic);
           }}
-          className="gradient-accent rounded-lg px-4 py-2 text-sm font-semibold"
+          disabled={!topic}
+          className="gradient-accent rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
         >
           Aplicar
         </button>

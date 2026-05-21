@@ -94,7 +94,7 @@ export function buildTutorSystemPrompt(context?: TutorStudentContext) {
     "Contexto del estudiante:",
     `- Nivel: ${context?.level || "no especificado"}`,
     `- Tema: ${context?.topic || "no especificado"}`,
-    `- Dificultad: ${context?.difficulty || "basico"}`,
+    `- Dificultad: ${context?.difficulty || "no especificada"}`,
     `- Conversacion: ${context?.conversationId || "sin-id"}`,
     "- Responde siempre en español",
     "- No ayudes a hacer trampa en exámenes",

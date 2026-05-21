@@ -49,6 +49,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
           includeInput={false}
           showButton={false}
           showPreview
+            isDarkMode={isDarkMode}
         />
       )}
       <div className={`flex items-center gap-2 rounded-xl border px-2 py-2 shadow-sm ${isDarkMode ? "border-slate-600 bg-slate-800" : "border-blue-200 bg-blue-50/40"}`}>
@@ -61,6 +62,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
           includeInput
           showButton
           showPreview={false}
+            isDarkMode={isDarkMode}
         />
         <input
           value={text}

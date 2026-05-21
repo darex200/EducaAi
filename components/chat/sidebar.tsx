@@ -85,6 +85,7 @@ export function Sidebar({
               key={topic.id}
               topic={topic}
               isActive={topic.id === selectedTopicId}
+              isDarkMode={isDarkMode}
               onSelect={() => onSelectTopic(topic.id)}
             />
           ))}

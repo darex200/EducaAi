@@ -13,19 +13,21 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
   const isUser = message.role === "user";
 
   return (
-    <div className={`flex gap-2 ${isUser ? "justify-end" : ""}`}>
+    <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
       {!isUser && (
-        <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${isDarkMode ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700"}`}>
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[11px] font-semibold text-white">
           IA
         </div>
       )}
       <div
-        className={`max-w-[88%] rounded-xl px-3 py-2 text-[13px] leading-5 ${
+        className={`max-w-[78%] px-4 py-3 text-sm leading-6 shadow-sm sm:max-w-[70%] ${
           isUser
-            ? "bg-gradient-to-r from-blue-700 to-blue-600 text-white"
+            ? isDarkMode
+              ? "rounded-3xl bg-slate-800 text-slate-100"
+              : "rounded-3xl bg-slate-100 text-slate-900"
             : isDarkMode
-              ? "border border-slate-700 bg-slate-800 text-slate-100"
-              : "border border-slate-200 bg-white text-slate-700"
+              ? "rounded-3xl rounded-tl-md border border-white/10 bg-white/5 text-slate-100"
+              : "rounded-3xl rounded-tl-md border border-slate-200 bg-white text-slate-800"
         }`}
       >
         {message.imageDataUrl && (
@@ -38,7 +40,7 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
         )}
       </div>
       {isUser && (
-        <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${isDarkMode ? "bg-slate-600 text-slate-100" : "bg-slate-200 text-slate-700"}`}>
+        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${isDarkMode ? "bg-slate-700 text-slate-100" : "bg-slate-200 text-slate-700"}`}>
           Tú
         </div>
       )}

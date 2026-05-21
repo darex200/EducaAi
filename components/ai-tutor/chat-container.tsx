@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/chat/app-layout";
 import { Sidebar } from "@/components/chat/sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
@@ -43,7 +42,6 @@ function toDataUrl(file: File) {
 }
 
 export function ChatContainer() {
-  const router = useRouter();
   const { profile } = useLearning();
   const [messages, setMessages] = useState<TutorMessage[]>(() => {
     if (typeof window === "undefined") return [getWelcomeMessage(profile.topic)];
@@ -96,11 +94,19 @@ export function ChatContainer() {
       })),
     [],
   );
-  const [selectedTopicId, setSelectedTopicId] = useState(() => dynamicTopics[0]?.id ?? "math");
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(() => {
+    if (!profile.topic) return null;
+    return (
+      dynamicTopics.find((topic) => topic.id === profile.topic || topic.title === profile.topic)?.id ?? null
+    );
+  });
   const selectedTopic = useMemo(
-    () => dynamicTopics.find((topic) => topic.id === selectedTopicId) ?? dynamicTopics[0],
+    () => dynamicTopics.find((topic) => topic.id === selectedTopicId),
     [dynamicTopics, selectedTopicId],
   );
+  const activeTopicLabel = selectedTopic?.title || profile.topic || "";
+  const activeDifficulty = activeTopicLabel ? selectedTopic?.difficulty || profile.difficulty : undefined;
+  const shouldShowToolsPanel = Boolean(isContentLoading || content || (showGuidedPractice && activeTopicLabel));
 
   useEffect(() => {
     if (!shouldAutoScroll) return;
@@ -163,8 +169,8 @@ export function ChatContainer() {
           context: {
             subjects: profile.subjects,
             level: profile.level,
-            topic: selectedTopic?.title || profile.topic,
-            difficulty: profile.difficulty,
+            topic: activeTopicLabel || undefined,
+            difficulty: activeDifficulty,
             conversationId,
           },
         }),
@@ -189,16 +195,19 @@ export function ChatContainer() {
   };
 
   const exploreContent = async () => {
-    if (!selectedTopic) return;
+    if (!activeTopicLabel) {
+      setShowTopicSelector(true);
+      return;
+    }
     setIsContentLoading(true);
     const res = await fetch("/api/topic-tools", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         mode: "content",
-        topic: selectedTopic.title,
+        topic: activeTopicLabel,
         level: "intermedio",
-        difficulty: selectedTopic.difficulty,
+        difficulty: activeDifficulty ?? "basico",
       }),
     });
     const data = (await res.json()) as {
@@ -221,23 +230,36 @@ export function ChatContainer() {
         <Sidebar
           isDarkMode={isDarkMode}
           onNewChat={() => {
-            if (!profile.topic) {
-              router.push("/onboarding");
-              return;
-            }
-            setMessages([getWelcomeMessage(profile.topic)]);
+            setMessages([getWelcomeMessage(activeTopicLabel || profile.topic)]);
             setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+            setContent(null);
             setError(null);
           }}
           onChooseTopic={() => setShowTopicSelector((v) => !v)}
           onToggleTheme={() => setIsDarkMode((v) => !v)}
-          onGenerateQuiz={() => setIsQuizOpen(true)}
+          onGenerateQuiz={() => {
+            if (!activeTopicLabel) {
+              setShowTopicSelector(true);
+              return;
+            }
+            setIsQuizOpen(true);
+          }}
           onExploreContent={exploreContent}
-          onToggleGuidedPractice={() => setShowGuidedPractice((v) => !v)}
+          onToggleGuidedPractice={() => {
+            if (!activeTopicLabel) {
+              setShowTopicSelector(true);
+              return;
+            }
+            setShowGuidedPractice((v) => !v);
+          }}
           practiceEnabled={showGuidedPractice}
           topics={dynamicTopics}
           selectedTopicId={selectedTopicId}
-          onSelectTopic={setSelectedTopicId}
+          activeTopicLabel={activeTopicLabel}
+          onSelectTopic={(topicId) => {
+            setSelectedTopicId(topicId || null);
+            setContent(null);
+          }}
         />
       }
     >
@@ -246,33 +268,37 @@ export function ChatContainer() {
           messages={messages}
           isSending={isSending}
           isDarkMode={isDarkMode}
-          topicLabel={selectedTopic?.title || profile.topic || "No seleccionado"}
+          topicLabel={activeTopicLabel || "Sin modalidad seleccionada"}
           levelLabel={profile.level || "No definido"}
-          difficultyLabel={selectedTopic?.difficulty || profile.difficulty}
+          difficultyLabel={activeDifficulty || "No definida"}
+          hasSelectedTopic={Boolean(activeTopicLabel)}
           showTopicSelector={showTopicSelector}
           topicSelector={
             <TopicSelector
               onApply={(topic) => {
+                const matchedTopic = dynamicTopics.find((item) => item.title === topic || item.id === topic);
+                setSelectedTopicId(matchedTopic?.id ?? null);
                 setShowTopicSelector(false);
                 setMessages([getWelcomeMessage(topic)]);
                 setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+                setContent(null);
               }}
             />
           }
-          toolsPanel={
+          toolsPanel={shouldShowToolsPanel ? (
             <div className="space-y-3">
               <ContentViewer data={content} loading={isContentLoading} />
-              {showGuidedPractice && selectedTopic && <GuidedPractice topic={selectedTopic.title} />}
+              {showGuidedPractice && activeTopicLabel && <GuidedPractice topic={activeTopicLabel} />}
             </div>
-          }
+          ) : null}
           input={<ChatInput onSend={handleSend} disabled={isSending} isDarkMode={isDarkMode} />}
           endRef={endRef}
           bodyRef={bodyRef}
           onBodyScroll={handleBodyScroll}
           error={error}
         />
-        {selectedTopic && (
-          <QuizModal topic={selectedTopic.title} isOpen={isQuizOpen} onClose={() => setIsQuizOpen(false)} />
+        {activeTopicLabel && (
+          <QuizModal topic={activeTopicLabel} isOpen={isQuizOpen} onClose={() => setIsQuizOpen(false)} />
         )}
       </div>
     </AppLayout>

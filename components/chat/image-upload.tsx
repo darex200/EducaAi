@@ -11,6 +11,7 @@ type ImageUploadProps = {
   includeInput?: boolean;
   showButton?: boolean;
   showPreview?: boolean;
+  isDarkMode?: boolean;
 };
 
 export function ImageUpload({
@@ -22,6 +23,7 @@ export function ImageUpload({
   includeInput = true,
   showButton = true,
   showPreview = true,
+  isDarkMode = false,
 }: ImageUploadProps) {
   return (
     <>
@@ -38,17 +40,22 @@ export function ImageUpload({
       {showButton && (
         <label
           htmlFor={inputId}
-          className={`cursor-pointer rounded-lg border px-3 py-2 text-sm ${
+          className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border text-sm transition ${
             disabled
               ? "cursor-not-allowed opacity-60"
-              : "border-slate-300 bg-white text-slate-700"
+              : isDarkMode
+                ? "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
           }`}
+          aria-label="Adjuntar imagen"
         >
-          Adjuntar imagen
+          +
         </label>
       )}
       {showPreview && imagePreviewUrl && (
-        <div className="mb-2 flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+        <div className={`mb-2 flex w-full items-center gap-2 rounded-2xl border p-2 ${
+          isDarkMode ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50"
+        }`}>
           <Image
             src={imagePreviewUrl}
             alt="Vista previa de imagen"
@@ -57,11 +64,13 @@ export function ImageUpload({
             height={48}
             unoptimized
           />
-          <p className="truncate text-xs text-slate-600">{imageFile?.name}</p>
+          <p className={`truncate text-xs ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>{imageFile?.name}</p>
           <button
             type="button"
             onClick={() => onFileChange(null)}
-            className="ml-auto rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+            className={`ml-auto rounded-md border px-2 py-1 text-xs transition ${
+              isDarkMode ? "border-white/10 text-slate-300 hover:bg-white/10" : "border-slate-200 text-slate-600 hover:bg-slate-100"
+            }`}
           >
             Quitar
           </button>

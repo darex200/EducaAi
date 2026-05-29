@@ -1,21 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Educa AI">
   <defs>
-    <radialGradient id="orb" cx="30%" cy="28%" r="76%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="24%" stop-color="#dbeafe" />
-      <stop offset="56%" stop-color="#60a5fa" />
-      <stop offset="100%" stop-color="#1d4ed8" />
-    </radialGradient>
-    <radialGradient id="highlight" cx="34%" cy="24%" r="42%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.72" />
-      <stop offset="54%" stop-color="#ffffff" stop-opacity="0.2" />
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
-    </radialGradient>
-    <filter id="shadow" x="-22%" y="-16%" width="144%" height="150%">
-      <feDropShadow dx="0" dy="26" stdDeviation="28" flood-color="#2563eb" flood-opacity="0.28" />
+    <linearGradient id="body" x1="112" y1="152" x2="400" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60a5fa" />
+      <stop offset="0.48" stop-color="#2563eb" />
+      <stop offset="1" stop-color="#4f46e5" />
+    </linearGradient>
+    <filter id="shadow" x="-18%" y="-14%" width="136%" height="146%">
+      <feDropShadow dx="0" dy="26" stdDeviation="26" flood-color="#2563eb" flood-opacity="0.3" />
     </filter>
   </defs>
-  <circle cx="256" cy="256" r="208" fill="url(#orb)" filter="url(#shadow)" />
-  <circle cx="256" cy="256" r="208" fill="none" stroke="#bfdbfe" stroke-opacity="0.45" stroke-width="10" />
-  <ellipse cx="195" cy="165" rx="105" ry="82" fill="url(#highlight)" />
+  <rect width="512" height="512" rx="116" fill="#eff6ff" />
+  <rect x="104" y="164" width="304" height="268" rx="88" fill="url(#body)" filter="url(#shadow)" />
+  <rect x="144" y="214" width="224" height="142" rx="54" fill="#ffffff" fill-opacity="0.2" />
+  <circle cx="200" cy="286" r="28" fill="#eff6ff" />
+  <circle cx="312" cy="286" r="28" fill="#eff6ff" />
+  <path d="M208 356c28 20 68 20 96 0" stroke="#eff6ff" stroke-width="28" stroke-linecap="round" />
+  <path d="M256 164v-42" stroke="#bfdbfe" stroke-width="24" stroke-linecap="round" />
+  <circle cx="256" cy="88" r="32" fill="#bfdbfe" />
+  <path d="M152 156 256 96l104 60-104 60-104-60Z" fill="#1e3a8a" />
+  <path d="M360 156v70" stroke="#bfdbfe" stroke-width="20" stroke-linecap="round" />
+  <circle cx="360" cy="246" r="18" fill="#bfdbfe" />
+  <path d="M104 274H64M448 274h-40" stroke="#60a5fa" stroke-width="32" stroke-linecap="round" />
 </svg>

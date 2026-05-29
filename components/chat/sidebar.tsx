@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { TopicCard } from "@/components/chat/topic-card";
 
 type SidebarProps = {
@@ -144,9 +145,7 @@ export function Sidebar({
     >
       <div className={`shrink-0 border-b px-4 py-4 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-sm font-bold text-white shadow-lg shadow-blue-500/30">
-            E
-          </div>
+          <BrandLogo className="h-10 w-10 drop-shadow-[0_8px_14px_rgba(37,99,235,0.25)]" />
           <div>
             <p className="text-base font-semibold tracking-tight">Educa AI</p>
             <p className={`text-[11px] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>Tutor académico guiado</p>
@@ -192,6 +191,11 @@ export function Sidebar({
                   : "btn-hover-lift-light border-slate-200 bg-white text-slate-700"
               }`}
             >
+              {!selectedTopicId && (
+                <option value="" disabled>
+                  Selecciona un tema
+                </option>
+              )}
               {topics.map((topic) => (
                 <option key={topic.id} value={topic.id}>
                   {topic.title}

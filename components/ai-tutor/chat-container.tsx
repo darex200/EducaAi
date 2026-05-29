@@ -310,9 +310,6 @@ export function ChatContainer() {
           messages={messages}
           isSending={isSending}
           isDarkMode={isDarkMode}
-          topicLabel={activeTopicTitle || "No seleccionado"}
-          levelLabel={profile.level || "No definido"}
-          difficultyLabel={activeDifficulty}
           showTopicSelector={showTopicSelector}
           topicSelector={
             <TopicSelector

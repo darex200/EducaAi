@@ -15,6 +15,33 @@ import type { TutorMessage } from "@/components/ai-tutor/types";
 import { lessons } from "@/lib/lessons";
 
 const CHAT_STORAGE_KEY = "educa-ai-chat-state";
+const topicCategories = ["Ciencias", "Matematicas", "Lenguaje", "Historia", "Tecnologia"];
+
+function normalizeTopicName(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function topicMatches(left: string, right: string) {
+  const normalizedLeft = normalizeTopicName(left);
+  const normalizedRight = normalizeTopicName(right);
+
+  if (!normalizedLeft || !normalizedRight) return false;
+  return (
+    normalizedLeft === normalizedRight ||
+    normalizedLeft.includes(normalizedRight) ||
+    normalizedRight.includes(normalizedLeft)
+  );
+}
+
+function topicIdFromTitle(title: string, index: number) {
+  const slug = normalizeTopicName(title).replace(/\s+/g, "-");
+  return `topic-${slug || index}`;
+}
 
 function getWelcomeMessage(topic?: string) {
   const starters = [
@@ -83,24 +110,49 @@ export function ChatContainer() {
     if (typeof window === "undefined") return `conv-${Date.now()}`;
     return localStorage.getItem("educa-ai-conversation-id") || `conv-${Date.now()}`;
   });
-  const endRef = useRef<HTMLDivElement | null>(null);
-  const bodyRef = useRef<HTMLDivElement | null>(null);
   const dynamicTopics = useMemo(
-    () =>
-      lessons.map((lesson, index) => ({
+    () => {
+      const lessonTopics = lessons.map((lesson, index) => ({
         id: lesson.slug,
         title: lesson.title,
         description: lesson.explanation,
-        category: ["Ciencias", "Matematicas", "Lenguaje", "Historia", "Tecnologia"][index % 5],
+        category: topicCategories[index % topicCategories.length],
         difficulty: (["basico", "intermedio", "avanzado"] as const)[index % 3],
-      })),
-    [],
+      }));
+      const customTopicTitles = [
+        ...profile.generatedTopics,
+        ...(profile.topic ? [profile.topic] : []),
+      ].filter(
+        (topic, index, list) =>
+          topic &&
+          list.findIndex((item) => topicMatches(item, topic)) === index &&
+          !lessonTopics.some((lesson) => topicMatches(lesson.title, topic)),
+      );
+      const customTopics = customTopicTitles.map((topic, index) => ({
+        id: topicIdFromTitle(topic, index),
+        title: topic,
+        description: `Tema personalizado para trabajar ${topic} con el tutor IA.`,
+        category: "Personalizado",
+        difficulty: profile.difficulty,
+      }));
+
+      return [...customTopics, ...lessonTopics];
+    },
+    [profile.difficulty, profile.generatedTopics, profile.topic],
   );
-  const [selectedTopicId, setSelectedTopicId] = useState(() => dynamicTopics[0]?.id ?? "math");
+  const preferredTopicId = profile.topic
+    ? dynamicTopics.find((topic) => topicMatches(topic.title, profile.topic))?.id ?? ""
+    : "";
+  const [selectedTopicId, setSelectedTopicId] = useState(preferredTopicId);
+  const previousProfileTopicRef = useRef(profile.topic);
+  const endRef = useRef<HTMLDivElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
   const selectedTopic = useMemo(
-    () => dynamicTopics.find((topic) => topic.id === selectedTopicId) ?? dynamicTopics[0],
+    () => dynamicTopics.find((topic) => topic.id === selectedTopicId),
     [dynamicTopics, selectedTopicId],
   );
+  const activeTopicTitle = selectedTopic?.title || profile.topic;
+  const activeDifficulty = selectedTopic?.difficulty || profile.difficulty;
 
   const scrollChatToBottom = (behavior: ScrollBehavior = "smooth") => {
     const node = bodyRef.current;
@@ -132,6 +184,18 @@ export function ChatContainer() {
     if (typeof window === "undefined") return;
     localStorage.setItem("educa-ai-conversation-id", conversationId);
   }, [conversationId]);
+
+  useEffect(() => {
+    if (previousProfileTopicRef.current === profile.topic) return;
+    previousProfileTopicRef.current = profile.topic;
+    setSelectedTopicId(preferredTopicId);
+  }, [preferredTopicId, profile.topic]);
+
+  useEffect(() => {
+    if (!selectedTopicId) return;
+    if (dynamicTopics.some((topic) => topic.id === selectedTopicId)) return;
+    setSelectedTopicId(preferredTopicId);
+  }, [dynamicTopics, preferredTopicId, selectedTopicId]);
 
   const handleSend = async ({
     text,
@@ -166,8 +230,8 @@ export function ChatContainer() {
           context: {
             subjects: profile.subjects,
             level: profile.level,
-            topic: selectedTopic?.title || profile.topic,
-            difficulty: profile.difficulty,
+            topic: activeTopicTitle,
+            difficulty: activeDifficulty,
             conversationId,
           },
         }),
@@ -225,11 +289,11 @@ export function ChatContainer() {
         <Sidebar
           isDarkMode={isDarkMode}
           onNewChat={() => {
-            if (!profile.topic) {
+            if (!activeTopicTitle) {
               router.push("/onboarding");
               return;
             }
-            setMessages([getWelcomeMessage(profile.topic)]);
+            setMessages([getWelcomeMessage(activeTopicTitle)]);
             setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
             setError(null);
           }}
@@ -250,14 +314,17 @@ export function ChatContainer() {
           messages={messages}
           isSending={isSending}
           isDarkMode={isDarkMode}
-          topicLabel={selectedTopic?.title || profile.topic || "No seleccionado"}
+          topicLabel={activeTopicTitle || "No seleccionado"}
           levelLabel={profile.level || "No definido"}
-          difficultyLabel={selectedTopic?.difficulty || profile.difficulty}
+          difficultyLabel={activeDifficulty}
           showTopicSelector={showTopicSelector}
           topicSelector={
             <TopicSelector
               onApply={(topic) => {
                 setShowTopicSelector(false);
+                setSelectedTopicId(
+                  dynamicTopics.find((item) => topicMatches(item.title, topic))?.id ?? topicIdFromTitle(topic, 0),
+                );
                 setMessages([getWelcomeMessage(topic)]);
                 setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
               }}

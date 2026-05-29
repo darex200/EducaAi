@@ -143,14 +143,21 @@ export function ChatContainer() {
   const preferredTopicId = profile.topic
     ? dynamicTopics.find((topic) => topicMatches(topic.title, profile.topic))?.id ?? ""
     : "";
-  const [selectedTopicId, setSelectedTopicId] = useState(preferredTopicId);
-  const previousProfileTopicRef = useRef(profile.topic);
+  const [selectedTopicId, setSelectedTopicId] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const selectedTopic = useMemo(
-    () => dynamicTopics.find((topic) => topic.id === selectedTopicId),
-    [dynamicTopics, selectedTopicId],
+    () => {
+      const explicitlySelectedTopic = dynamicTopics.find((topic) => topic.id === selectedTopicId);
+      if (explicitlySelectedTopic) return explicitlySelectedTopic;
+      if (!selectedTopicId && preferredTopicId) {
+        return dynamicTopics.find((topic) => topic.id === preferredTopicId);
+      }
+      return undefined;
+    },
+    [dynamicTopics, preferredTopicId, selectedTopicId],
   );
+  const visibleSelectedTopicId = selectedTopic?.id ?? "";
   const activeTopicTitle = selectedTopic?.title || profile.topic;
   const activeDifficulty = selectedTopic?.difficulty || profile.difficulty;
 
@@ -168,7 +175,7 @@ export function ChatContainer() {
 
   useEffect(() => {
     scrollChatToBottom("smooth");
-  }, [selectedTopicId]);
+  }, [visibleSelectedTopicId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -185,17 +192,6 @@ export function ChatContainer() {
     localStorage.setItem("educa-ai-conversation-id", conversationId);
   }, [conversationId]);
 
-  useEffect(() => {
-    if (previousProfileTopicRef.current === profile.topic) return;
-    previousProfileTopicRef.current = profile.topic;
-    setSelectedTopicId(preferredTopicId);
-  }, [preferredTopicId, profile.topic]);
-
-  useEffect(() => {
-    if (!selectedTopicId) return;
-    if (dynamicTopics.some((topic) => topic.id === selectedTopicId)) return;
-    setSelectedTopicId(preferredTopicId);
-  }, [dynamicTopics, preferredTopicId, selectedTopicId]);
 
   const handleSend = async ({
     text,
@@ -304,7 +300,7 @@ export function ChatContainer() {
           onToggleGuidedPractice={() => setShowGuidedPractice((v) => !v)}
           practiceEnabled={showGuidedPractice}
           topics={dynamicTopics}
-          selectedTopicId={selectedTopicId}
+          selectedTopicId={visibleSelectedTopicId}
           onSelectTopic={setSelectedTopicId}
         />
       }

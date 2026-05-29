@@ -7,9 +7,6 @@ type ChatWindowProps = {
   messages: TutorMessage[];
   isSending: boolean;
   isDarkMode: boolean;
-  topicLabel: string;
-  levelLabel: string;
-  difficultyLabel: string;
   showTopicSelector: boolean;
   topicSelector: React.ReactNode;
   input: React.ReactNode;
@@ -24,9 +21,6 @@ export function ChatWindow({
   messages,
   isSending,
   isDarkMode,
-  topicLabel,
-  levelLabel,
-  difficultyLabel,
   showTopicSelector,
   topicSelector,
   input,
@@ -48,13 +42,6 @@ export function ChatWindow({
         }`}
       >
         <p className="text-sm font-semibold tracking-tight">Asistente de aprendizaje guiado</p>
-        <p className={`mt-0.5 text-xs ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
-          <span className={isDarkMode ? "text-slate-400" : "text-slate-600"}>{topicLabel}</span>
-          <span className="mx-1.5 opacity-40">·</span>
-          {levelLabel}
-          <span className="mx-1.5 opacity-40">·</span>
-          {difficultyLabel}
-        </p>
       </header>
 
       {showTopicSelector && (

@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  getQuestionResult,
-  type QuizDifficulty,
-  type QuizQuestion,
-  type QuizQuestionType,
-  type SchoolLevel,
+import type {
+  QuizDifficulty,
+  QuizQuestion,
+  QuizQuestionType,
+  SchoolLevel,
 } from "@/lib/quiz";
 
 type QuizModalProps = {
@@ -15,11 +14,27 @@ type QuizModalProps = {
   onClose: () => void;
 };
 
-type ApiQuizResponse = {
+type GradedAnswer = {
+  questionId: string;
+  correct: boolean;
+  feedback: string;
+};
+
+type GenerateResponse = {
   quiz?: QuizQuestion[];
-  error?: string;
-  note?: string;
+  attemptId?: string | null;
+  difficulty?: QuizDifficulty;
   source?: string;
+  note?: string;
+  error?: string;
+};
+
+type SubmitResponse = {
+  score?: number;
+  total?: number;
+  feedback?: GradedAnswer[];
+  masteryScore?: number;
+  error?: string;
 };
 
 export function QuizModal({ topic, isOpen, onClose }: QuizModalProps) {
@@ -29,7 +44,7 @@ export function QuizModal({ topic, isOpen, onClose }: QuizModalProps) {
 
 function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => void }) {
   const [schoolLevel, setSchoolLevel] = useState<SchoolLevel>("secundaria");
-  const [difficulty, setDifficulty] = useState<QuizDifficulty>("intermedio");
+  const [difficulty, setDifficulty] = useState<QuizDifficulty | "auto">("auto");
   const [questionType, setQuestionType] = useState<QuizQuestionType>("mixto");
   const [questionCount, setQuestionCount] = useState(6);
   const [subtopicsInput, setSubtopicsInput] = useState("");
@@ -37,15 +52,19 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
   const [isLoadingSubtopics, setIsLoadingSubtopics] = useState(false);
   const [showConfig, setShowConfig] = useState(true);
   const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [appliedDifficulty, setAppliedDifficulty] = useState<QuizDifficulty | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<{
+    score: number;
+    total: number;
+    masteryScore?: number;
+    feedback: Record<string, GradedAnswer>;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [statusNote, setStatusNote] = useState<string | null>(null);
-
-  const score = quiz.reduce((acc, question) => {
-    return acc + (getQuestionResult(question, answers[question.id] ?? "") === "correcta" ? 1 : 0);
-  }, 0);
 
   const loadSubtopics = useCallback(async () => {
     setIsLoadingSubtopics(true);
@@ -72,7 +91,8 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
   const generateQuiz = async () => {
     setQuiz([]);
     setAnswers({});
-    setIsChecked(false);
+    setResult(null);
+    setAttemptId(null);
     setIsGenerating(true);
     setError(null);
     setStatusNote(null);
@@ -80,11 +100,11 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
     const safeCount = Math.max(3, Math.min(20, questionCount || 6));
 
     try {
-      const res = await fetch("/api/topic-tools", {
+      const res = await fetch("/api/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: "quiz",
+          action: "generate",
           topic,
           level: schoolLevel,
           difficulty,
@@ -97,22 +117,56 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
         }),
       });
 
-      const data = (await res.json()) as ApiQuizResponse;
+      const data = (await res.json()) as GenerateResponse;
       if (!res.ok) throw new Error(data.error ?? "No se pudo generar el cuestionario.");
 
       const items = data.quiz ?? [];
       if (!items.length) throw new Error("El servidor devolvió un cuestionario vacío. Intenta de nuevo.");
 
       setQuiz(items);
+      setAttemptId(data.attemptId ?? null);
+      setAppliedDifficulty(data.difficulty ?? null);
       setShowConfig(false);
       if (data.note) setStatusNote(data.note);
-      if (data.source === "fallback") {
-        setStatusNote("Se generó un cuestionario de respaldo porque la IA no respondió correctamente.");
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al generar el cuestionario.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const submitAnswers = async () => {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "submit",
+          attemptId,
+          questions: quiz,
+          answers,
+          topic,
+        }),
+      });
+      const data = (await res.json()) as SubmitResponse;
+      if (!res.ok) throw new Error(data.error ?? "No se pudieron corregir las respuestas.");
+
+      const feedbackMap: Record<string, GradedAnswer> = {};
+      for (const item of data.feedback ?? []) {
+        feedbackMap[item.questionId] = item;
+      }
+      setResult({
+        score: data.score ?? 0,
+        total: data.total ?? quiz.length,
+        masteryScore: data.masteryScore,
+        feedback: feedbackMap,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al corregir las respuestas.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -127,6 +181,16 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
   const selectClass =
     "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20";
 
+  const typeLabel: Record<string, string> = {
+    opcion_multiple: "opción múltiple",
+    verdadero_falso: "verdadero / falso",
+    abierta: "abierta",
+    problema: "problema",
+    caso: "caso",
+    examen: "examen",
+    mixto: "mixto",
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
       <div className="glass-panel chat-scroll-smooth mt-4 mb-6 flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/60 shadow-[0_24px_64px_rgba(15,23,42,0.18)]">
@@ -135,7 +199,14 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
             <h3 className="text-lg font-semibold tracking-tight text-slate-900">
               {showConfig ? "Configurar cuestionario" : "Cuestionario generado"}
             </h3>
-            <p className="text-xs text-slate-500">{topic}</p>
+            <p className="text-xs text-slate-500">
+              {topic}
+              {appliedDifficulty && !showConfig && (
+                <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                  dificultad {appliedDifficulty}
+                </span>
+              )}
+            </p>
           </div>
           <button type="button" onClick={onClose} className="btn-ghost rounded-xl">
             Cerrar
@@ -178,9 +249,10 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
                     Dificultad
                     <select
                       value={difficulty}
-                      onChange={(e) => setDifficulty(e.target.value as QuizDifficulty)}
+                      onChange={(e) => setDifficulty(e.target.value as QuizDifficulty | "auto")}
                       className={`${selectClass} mt-1 w-full`}
                     >
+                      <option value="auto">Automática (según tu dominio)</option>
                       <option value="basico">Básico</option>
                       <option value="intermedio">Intermedio</option>
                       <option value="avanzado">Avanzado</option>
@@ -193,9 +265,13 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
                       onChange={(e) => setQuestionType(e.target.value as QuizQuestionType)}
                       className={`${selectClass} mt-1 w-full`}
                     >
-                      <option value="opcion_multiple">Opción múltiple</option>
-                      <option value="abiertas">Abiertas</option>
                       <option value="mixto">Mixto</option>
+                      <option value="opcion_multiple">Opción múltiple</option>
+                      <option value="verdadero_falso">Verdadero / Falso</option>
+                      <option value="abiertas">Abiertas</option>
+                      <option value="problemas">Problemas</option>
+                      <option value="casos">Casos de análisis</option>
+                      <option value="examen">Tipo examen</option>
                     </select>
                   </label>
                   <label className="block text-xs text-slate-500">
@@ -285,7 +361,7 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
 
               <div className="space-y-3">
                 {quiz.map((q, idx) => {
-                  const result = isChecked ? getQuestionResult(q, answers[q.id] ?? "") : null;
+                  const graded = result?.feedback[q.id] ?? null;
                   return (
                     <article
                       key={q.id}
@@ -296,7 +372,7 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
                           {idx + 1}. {q.question}
                         </p>
                         <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase text-slate-500">
-                          {q.type.replace("_", " ")}
+                          {typeLabel[q.type] ?? q.type}
                         </span>
                       </div>
 
@@ -312,6 +388,7 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
                                 name={`quiz-${q.id}`}
                                 value={opt}
                                 checked={answers[q.id] === opt}
+                                disabled={Boolean(result)}
                                 onChange={(e) =>
                                   setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
                                 }
@@ -327,26 +404,20 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
                             setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
                           }
                           rows={2}
+                          disabled={Boolean(result)}
                           placeholder="Escribe tu respuesta"
                           className={`${selectClass} mt-1 w-full`}
                         />
                       )}
 
-                      {result && (
+                      {graded && (
                         <p
                           className={`mt-2 text-xs font-medium ${
-                            result === "correcta"
-                              ? "text-green-600"
-                              : result === "incorrecta"
-                                ? "text-red-600"
-                                : "text-slate-500"
+                            graded.correct ? "text-green-600" : "text-red-600"
                           }`}
                         >
-                          {result === "correcta" && "✓ Respuesta correcta"}
-                          {result === "incorrecta" &&
-                            `✗ Incorrecta${q.answer ? `. Sugerida: ${q.answer}` : ""}`}
-                          {result === "sin-responder" && "Sin responder"}
-                          {result === "sin-clave" && "Respuesta registrada"}
+                          {graded.correct ? "✓ " : "✗ "}
+                          {graded.feedback}
                         </p>
                       )}
                     </article>
@@ -355,24 +426,32 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
               </div>
 
               {quiz.length > 0 && (
-                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-                  {isChecked ? (
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                  {result ? (
                     <p className="text-sm font-semibold text-slate-800">
-                      Resultado: {score} / {quiz.length}
+                      Resultado: {result.score} / {result.total}
                       <span className="ml-2 font-normal text-slate-500">
-                        ({Math.round((score / quiz.length) * 100)}%)
+                        ({result.total ? Math.round((result.score / result.total) * 100) : 0}%)
                       </span>
+                      {result.masteryScore != null && (
+                        <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                          dominio del tema: {result.masteryScore}/100
+                        </span>
+                      )}
                     </p>
                   ) : (
                     <span />
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setIsChecked(true)}
-                    className="btn-primary px-4 py-2 text-sm"
-                  >
-                    Corregir respuestas
-                  </button>
+                  {!result && (
+                    <button
+                      type="button"
+                      onClick={submitAnswers}
+                      disabled={isSubmitting}
+                      className="btn-primary px-4 py-2 text-sm"
+                    >
+                      {isSubmitting ? "Corrigiendo…" : "Corregir respuestas"}
+                    </button>
+                  )}
                 </div>
               )}
             </>

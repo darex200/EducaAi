@@ -1,14 +1,33 @@
 export type QuizDifficulty = "basico" | "intermedio" | "avanzado";
-export type QuizQuestionType = "opcion_multiple" | "abiertas" | "mixto";
+export type QuizQuestionType =
+  | "opcion_multiple"
+  | "verdadero_falso"
+  | "abiertas"
+  | "problemas"
+  | "casos"
+  | "examen"
+  | "mixto";
 export type SchoolLevel = "primaria" | "secundaria" | "bachillerato" | "universidad";
 
 export type QuizQuestion = {
   id: string;
-  type: "opcion_multiple" | "abierta" | "mixto";
+  type:
+    | "opcion_multiple"
+    | "verdadero_falso"
+    | "abierta"
+    | "problema"
+    | "caso"
+    | "examen"
+    | "mixto";
   question: string;
   options?: string[];
   answer?: string;
 };
+
+/** Tipos de pregunta que se responden con texto libre. */
+export function isOpenQuestionType(type: QuizQuestion["type"]) {
+  return type === "abierta" || type === "problema" || type === "caso" || type === "examen";
+}
 
 export function clampQuestionCount(value?: number) {
   const n = Number(value);
@@ -36,6 +55,11 @@ export function extractJsonPayload(text: string): unknown {
 function normalizeQuestionType(raw: unknown): QuizQuestion["type"] {
   const value = String(raw ?? "abierta").toLowerCase();
   if (value.includes("multiple") || value === "opcion_multiple") return "opcion_multiple";
+  if (value.includes("verdadero") || value.includes("falso") || value.includes("true_false"))
+    return "verdadero_falso";
+  if (value.includes("problema")) return "problema";
+  if (value.includes("caso")) return "caso";
+  if (value.includes("examen")) return "examen";
   if (value.includes("mixto")) return "mixto";
   return "abierta";
 }
@@ -56,12 +80,17 @@ export function normalizeQuizItem(raw: unknown, index: number, topic: string): Q
   if (type === "opcion_multiple" && options.length < 2) {
     options = ["Opción A", "Opción B", "Opción C", "Opción D"];
   }
+  if (type === "verdadero_falso") {
+    options = ["Verdadero", "Falso"];
+  }
+
+  const usesOptions = type === "opcion_multiple" || type === "verdadero_falso";
 
   return {
     id: String(item.id ?? `q-${topic.replace(/\s+/g, "-").toLowerCase()}-${index + 1}`),
     type,
     question,
-    options: type === "opcion_multiple" ? options : options.length ? options : undefined,
+    options: usesOptions ? options : options.length ? options : undefined,
     answer: answer || undefined,
   };
 }
@@ -80,8 +109,17 @@ export function normalizeQuiz(
   let filtered = normalized;
   if (questionType === "opcion_multiple") {
     filtered = normalized.filter((q) => q.type === "opcion_multiple" && (q.options?.length ?? 0) >= 2);
+  } else if (questionType === "verdadero_falso") {
+    filtered = normalized.filter((q) => q.type === "verdadero_falso");
   } else if (questionType === "abiertas") {
-    filtered = normalized.filter((q) => q.type === "abierta");
+    filtered = normalized.filter((q) => isOpenQuestionType(q.type));
+  } else if (questionType === "problemas") {
+    filtered = normalized.filter((q) => q.type === "problema" || q.type === "abierta");
+  } else if (questionType === "casos") {
+    filtered = normalized.filter((q) => q.type === "caso" || q.type === "abierta");
+  } else if (questionType === "examen") {
+    // En modo examen se aceptan todos los tipos generados.
+    filtered = normalized;
   }
 
   const target = clampQuestionCount(questionCount);
@@ -104,6 +142,17 @@ export function buildFallbackQuiz(
   const total = clampQuestionCount(count);
   return Array.from({ length: total }).map((_, index) => {
     const n = index + 1;
+
+    if (questionType === "verdadero_falso") {
+      return {
+        id: `fallback-${n}`,
+        type: "verdadero_falso" as const,
+        question: `Pregunta ${n}: ${topic} es un tema que requiere dominar conceptos previos. ¿Verdadero o falso?`,
+        options: ["Verdadero", "Falso"],
+        answer: "Verdadero",
+      };
+    }
+
     const useMultiple = questionType === "opcion_multiple" || (questionType === "mixto" && n % 2 === 1);
 
     if (useMultiple) {

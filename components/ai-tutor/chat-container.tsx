@@ -1,20 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/chat/app-layout";
-import { Sidebar } from "@/components/chat/sidebar";
+import { Sidebar, type ConversationSummary } from "@/components/chat/sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { ChatInput } from "@/components/chat/chat-input";
 import { QuizModal } from "@/components/chat/quiz-modal";
 import { ContentViewer } from "@/components/chat/content-viewer";
 import { GuidedPractice } from "@/components/chat/guided-practice";
 import { TopicSelector } from "@/components/onboarding/topic-selector";
+import { useAuth } from "@/context/auth-context";
 import { useLearning } from "@/context/learning-context";
 import type { TutorMessage } from "@/components/ai-tutor/types";
 import { lessons } from "@/lib/lessons";
 
-const CHAT_STORAGE_KEY = "educa-ai-chat-state";
+const ACTIVE_CONVERSATION_KEY = "educa-ai-active-conversation";
 const topicCategories = ["Ciencias", "Matematicas", "Lenguaje", "Historia", "Tecnologia"];
 
 function normalizeTopicName(value: string) {
@@ -43,22 +44,6 @@ function topicIdFromTitle(title: string, index: number) {
   return `topic-${slug || index}`;
 }
 
-function getWelcomeMessage(topic?: string) {
-  const starters = [
-    "¿Qué parte te gustaría entender primero?",
-    "¿Quieres empezar por teoría o por ejercicios?",
-    "¿Cuál es el punto que más te está costando?",
-  ];
-  const randomStarter = starters[Math.floor(Math.random() * starters.length)];
-
-  return {
-    id: "assistant-welcome",
-    role: "assistant" as const,
-    content: topic
-      ? `Hola. Veo que estás estudiando ${topic}. Para empezar, ${randomStarter}`
-      : "Hola. Soy tu tutor IA. ¿Qué tema te gustaría trabajar hoy?",
-  };
-}
 
 function toDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -71,22 +56,10 @@ function toDataUrl(file: File) {
 
 export function ChatContainer() {
   const router = useRouter();
+  const { user, logout } = useAuth();
   const { profile } = useLearning();
-  const [messages, setMessages] = useState<TutorMessage[]>(() => {
-    if (typeof window === "undefined") return [getWelcomeMessage(profile.topic)];
-    const stored = localStorage.getItem(CHAT_STORAGE_KEY);
-    if (!stored) return [getWelcomeMessage(profile.topic)];
-    try {
-      const parsed = JSON.parse(stored) as {
-        topic?: string;
-        messages?: TutorMessage[];
-      };
-      if (parsed.topic !== (profile.topic || "")) return [getWelcomeMessage(profile.topic)];
-      return parsed.messages?.length ? parsed.messages : [getWelcomeMessage(profile.topic)];
-    } catch {
-      return [getWelcomeMessage(profile.topic)];
-    }
-  });
+  const [messages, setMessages] = useState<TutorMessage[]>([]);
+  const [isNewChat, setIsNewChat] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -98,6 +71,7 @@ export function ChatContainer() {
   const [isContentLoading, setIsContentLoading] = useState(false);
   const [showGuidedPractice, setShowGuidedPractice] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [isAnalyzingDocument, setIsAnalyzingDocument] = useState(false);
   const [content, setContent] = useState<{
     title?: string;
     summary?: string;
@@ -106,10 +80,8 @@ export function ChatContainer() {
     articles?: string[];
     explanations?: string[];
   } | null>(null);
-  const [conversationId, setConversationId] = useState(() => {
-    if (typeof window === "undefined") return `conv-${Date.now()}`;
-    return localStorage.getItem("educa-ai-conversation-id") || `conv-${Date.now()}`;
-  });
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const dynamicTopics = useMemo(
     () => {
       const lessonTopics = lessons.map((lesson, index) => ({
@@ -146,6 +118,7 @@ export function ChatContainer() {
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const documentInputRef = useRef<HTMLInputElement | null>(null);
   const selectedTopic = useMemo(
     () => {
       const explicitlySelectedTopic = dynamicTopics.find((topic) => topic.id === selectedTopicId);
@@ -160,6 +133,55 @@ export function ChatContainer() {
   const visibleSelectedTopicId = selectedTopic?.id ?? "";
   const activeTopicTitle = selectedTopic?.title || profile.topic;
   const activeDifficulty = selectedTopic?.difficulty || profile.difficulty;
+
+  const refreshConversations = useCallback(async () => {
+    try {
+      const response = await fetch("/api/conversations");
+      if (!response.ok) return;
+      const data = (await response.json()) as { conversations?: ConversationSummary[] };
+      setConversations(data.conversations ?? []);
+    } catch {
+      // modo demo o sin red: el historial queda vacío
+    }
+  }, []);
+
+  const loadConversation = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/conversations/${id}`);
+      if (!response.ok) return false;
+      const data = (await response.json()) as {
+        conversation?: {
+          id: string;
+          messages: Array<{
+            id: string;
+            role: "user" | "assistant";
+            content: string;
+            imageUrl?: string | null;
+          }>;
+        };
+      };
+      if (!data.conversation) return false;
+      const loaded: TutorMessage[] = data.conversation.messages.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        imageDataUrl: message.imageUrl ?? undefined,
+      }));
+      setMessages(loaded);
+      setConversationId(id);
+      setIsNewChat(false);
+      setError(null);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [profile.topic]);
+
+  // Al entrar con sesión: solo carga el historial, sin restaurar conversación automáticamente.
+  useEffect(() => {
+    if (!user?.id) return;
+    void refreshConversations();
+  }, [user?.id, refreshConversations]);
 
   const scrollChatToBottom = (behavior: ScrollBehavior = "smooth") => {
     const node = bodyRef.current;
@@ -179,18 +201,26 @@ export function ChatContainer() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ topic: profile.topic || "", messages }));
-  }, [messages, profile.topic]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
     localStorage.setItem("educa-ai-dark-mode", isDarkMode ? "1" : "0");
   }, [isDarkMode]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem("educa-ai-conversation-id", conversationId);
+    if (conversationId) {
+      localStorage.setItem(ACTIVE_CONVERSATION_KEY, conversationId);
+    } else {
+      localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
+    }
   }, [conversationId]);
+
+  const clearChat = useCallback(() => {
+    setMessages([]);
+    setConversationId(null);
+    setIsNewChat(false);
+    setError(null);
+    setContent(null);
+    setShowGuidedPractice(false);
+  }, []);
 
 
   const handleSend = async ({
@@ -218,6 +248,7 @@ export function ChatContainer() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId,
           messages: nextMessages.map((message) => ({
             role: message.role,
             content: message.content,
@@ -228,14 +259,17 @@ export function ChatContainer() {
             level: profile.level,
             topic: activeTopicTitle,
             difficulty: activeDifficulty,
-            conversationId,
+            conversationId: conversationId ?? undefined,
           },
         }),
       });
 
       if (!response.ok) throw new Error("Fallo la solicitud");
 
-      const data = (await response.json()) as { reply?: string };
+      const data = (await response.json()) as {
+        reply?: string;
+        conversationId?: string | null;
+      };
       const assistantMessage: TutorMessage = {
         id: `assistant-${crypto.randomUUID()}`,
         role: "assistant",
@@ -244,10 +278,84 @@ export function ChatContainer() {
           "No pude responder en este intento. Reenvia tu pregunta y lo resolvemos paso a paso.",
       };
       setMessages((current) => [...current, assistantMessage]);
+      if (data.conversationId && data.conversationId !== conversationId) {
+        setConversationId(data.conversationId);
+        setIsNewChat(false);
+      }
+      if (data.conversationId) {
+        void refreshConversations();
+      }
     } catch {
       setError("Error al contactar el tutor IA. Verifica tu API key e intenta de nuevo.");
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleNewChat = () => {
+    if (!activeTopicTitle) {
+      router.push("/onboarding");
+      return;
+    }
+    setMessages([]);
+    setConversationId(null);
+    setIsNewChat(true);
+    setError(null);
+    setContent(null);
+    setShowGuidedPractice(false);
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    setConversations((current) => current.filter((conversation) => conversation.id !== id));
+    if (id === conversationId) {
+      clearChat();
+    }
+    try {
+      await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+    } catch {
+      void refreshConversations();
+    }
+  };
+
+  const handleAnalyzeDocument = async (file: File) => {
+    setIsAnalyzingDocument(true);
+    setError(null);
+    const placeholder: TutorMessage = {
+      id: `user-${crypto.randomUUID()}`,
+      role: "user",
+      content: `He subido el documento "${file.name}" para analizarlo.`,
+    };
+    setMessages((current) => [...current, placeholder]);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("topic", selectedTopic?.title || profile.topic || "");
+      const response = await fetch("/api/documents", {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await response.json()) as {
+        markdown?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.markdown) {
+        throw new Error(data.error ?? "No se pudo analizar el documento.");
+      }
+      setMessages((current) => [
+        ...current,
+        {
+          id: `assistant-${crypto.randomUUID()}`,
+          role: "assistant",
+          content: data.markdown!,
+        },
+      ]);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "No se pudo analizar el documento.",
+      );
+    } finally {
+      setIsAnalyzingDocument(false);
     }
   };
 
@@ -284,32 +392,51 @@ export function ChatContainer() {
       sidebar={
         <Sidebar
           isDarkMode={isDarkMode}
-          onNewChat={() => {
-            if (!activeTopicTitle) {
-              router.push("/onboarding");
-              return;
-            }
-            setMessages([getWelcomeMessage(activeTopicTitle)]);
-            setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-            setError(null);
-          }}
+          userName={user?.name}
+          onNewChat={handleNewChat}
           onChooseTopic={() => setShowTopicSelector((v) => !v)}
           onToggleTheme={() => setIsDarkMode((v) => !v)}
           onGenerateQuiz={() => setIsQuizOpen(true)}
           onExploreContent={exploreContent}
           onToggleGuidedPractice={() => setShowGuidedPractice((v) => !v)}
+          onAnalyzeDocument={() => documentInputRef.current?.click()}
+          isAnalyzingDocument={isAnalyzingDocument}
           practiceEnabled={showGuidedPractice}
           topics={dynamicTopics}
           selectedTopicId={visibleSelectedTopicId}
           onSelectTopic={setSelectedTopicId}
+          conversations={conversations}
+          activeConversationId={conversationId}
+          onSelectConversation={(id) => {
+            if (id === conversationId) return;
+            void loadConversation(id);
+          }}
+          onDeleteConversation={(id) => void handleDeleteConversation(id)}
+          onLogout={() => void logout()}
         />
       }
     >
       <div className="h-full min-h-0">
+        <input
+          ref={documentInputRef}
+          type="file"
+          accept="image/*,application/pdf"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void handleAnalyzeDocument(file);
+          }}
+        />
         <ChatWindow
           messages={messages}
-          isSending={isSending}
+          isSending={isSending || isAnalyzingDocument}
           isDarkMode={isDarkMode}
+          emptyState={
+            isNewChat
+              ? "Nueva conversación. Escribe tu primera pregunta para comenzar."
+              : "No se ha seleccionado una conversación. Elige una del historial o crea una nueva."
+          }
           topicLabel={activeTopicTitle || "No seleccionado"}
           levelLabel={profile.level || "No definido"}
           difficultyLabel={activeDifficulty}
@@ -321,8 +448,7 @@ export function ChatContainer() {
                 setSelectedTopicId(
                   dynamicTopics.find((item) => topicMatches(item.title, topic))?.id ?? topicIdFromTitle(topic, 0),
                 );
-                setMessages([getWelcomeMessage(topic)]);
-                setConversationId(`conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+                clearChat();
               }}
             />
           }
@@ -334,7 +460,13 @@ export function ChatContainer() {
               )}
             </div>
           }
-          input={<ChatInput onSend={handleSend} disabled={isSending} isDarkMode={isDarkMode} />}
+          input={
+            <ChatInput
+              onSend={handleSend}
+              disabled={isSending || isAnalyzingDocument || (!conversationId && !isNewChat)}
+              isDarkMode={isDarkMode}
+            />
+          }
           endRef={endRef}
           bodyRef={bodyRef}
           onBodyScroll={handleBodyScroll}

@@ -13,19 +13,20 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
   const isUser = message.role === "user";
 
   const assistantBubble = isDarkMode
-    ? "border border-slate-700/90 bg-slate-800/90 text-slate-100 shadow-sm"
-    : "border border-slate-200/80 bg-white text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.04)]";
+    ? "chat-bubble-assistant-dark theme-animate shadow-sm"
+    : "theme-animate border border-slate-200/80 bg-white text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.04)]";
 
-  const userBubble =
-    "bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 text-white shadow-[0_4px_16px_rgba(37,99,235,0.28)]";
+  const userBubble = isDarkMode
+    ? "chat-bubble-user-dark theme-animate text-white"
+    : "theme-animate bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 text-white shadow-[0_4px_16px_rgba(37,99,235,0.28)]";
 
   const avatarAssistant = isDarkMode
-    ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white ring-2 ring-slate-800"
-    : "bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-700 ring-2 ring-white";
+    ? "theme-animate bg-gradient-to-br from-indigo-500 to-violet-600 text-white ring-2 ring-slate-900/80"
+    : "theme-animate bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-700 ring-2 ring-white";
 
   const avatarUser = isDarkMode
-    ? "bg-slate-700 text-slate-200 ring-2 ring-slate-800"
-    : "bg-slate-200 text-slate-700 ring-2 ring-white";
+    ? "theme-animate bg-slate-700/90 text-slate-200 ring-2 ring-slate-900/80"
+    : "theme-animate bg-slate-200 text-slate-700 ring-2 ring-white";
 
   return (
     <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>

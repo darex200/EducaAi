@@ -7,6 +7,8 @@ const links = [
   { href: "/dashboard", label: "Aprendizaje" },
   { href: "/dashboard/topics", label: "Temas" },
   { href: "/dashboard/ai-tutor", label: "Tutor IA" },
+  { href: "/dashboard/progress", label: "Progreso" },
+  { href: "/dashboard/plan", label: "Plan de estudio" },
 ];
 
 export function Sidebar() {

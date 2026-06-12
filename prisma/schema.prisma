@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  birthYear     Int?
+  academicLevel String? // primaria | secundaria | bachillerato | universidad
+  createdAt     DateTime @default(now())
+
+  profile       LearningProfile?
+  conversations Conversation[]
+  masteries     TopicMastery[]
+  quizAttempts  QuizAttempt[]
+  studySessions StudySession[]
+  documents     Document[]
+  studyPlans    StudyPlan[]
+}
+
+model LearningProfile {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects        String[]
+  goals           String?
+  currentTopic    String   @default("")
+  difficulty      String   @default("basico")
+  generatedTopics String[]
+  strengths       String[]
+  weaknesses      String[]
+  commonErrors    Json     @default("[]")
+  updatedAt       DateTime @updatedAt
+}
+
+model TopicMastery {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic         String
+  subject       String   @default("")
+  masteryScore  Int      @default(0) // 0-100
+  status        String   @default("nuevo") // nuevo | en_progreso | dominado | debil
+  errorCount    Int      @default(0)
+  interactions  Int      @default(0)
+  lastStudiedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userId, topic])
+  @@index([userId, status])
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic     String    @default("")
+  title     String    @default("Nueva conversación")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+
+  @@index([userId, updatedAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // user | assistant
+  content        String
+  imageUrl       String?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model QuizAttempt {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic        String
+  difficulty   String
+  questionType String    @default("mixto")
+  questions    Json
+  answers      Json      @default("{}")
+  feedback     Json      @default("[]")
+  score        Int       @default(0)
+  total        Int       @default(0)
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, topic, createdAt])
+}
+
+model StudySession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day         DateTime @db.Date
+  durationMin Int      @default(0)
+  topics      String[]
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+
+  @@unique([userId, day])
+}
+
+model Document {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName       String
+  kind           String // image | pdf
+  storageUrl     String   @default("")
+  extractedText  String   @default("")
+  detectedTopics String[]
+  summary        String   @default("")
+  analysis       Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model StudyPlan {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examDate     DateTime?
+  hoursPerWeek Int       @default(5)
+  goal         String    @default("")
+  plan         Json
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}

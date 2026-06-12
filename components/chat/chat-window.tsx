@@ -7,6 +7,7 @@ type ChatWindowProps = {
   messages: TutorMessage[];
   isSending: boolean;
   isDarkMode: boolean;
+  emptyState?: string;
   topicLabel: string;
   levelLabel: string;
   difficultyLabel: string;
@@ -24,6 +25,7 @@ export function ChatWindow({
   messages,
   isSending,
   isDarkMode,
+  emptyState,
   topicLabel,
   levelLabel,
   difficultyLabel,
@@ -37,19 +39,21 @@ export function ChatWindow({
   toolsPanel,
 }: ChatWindowProps) {
   const shell = isDarkMode
-    ? "border-slate-700/80 bg-slate-950/90 text-slate-100 shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-    : "glass-panel border-white/70 bg-white/85 text-slate-900 shadow-[0_8px_40px_rgba(15,23,42,0.08)]";
+    ? "chat-surface-dark theme-animate backdrop-blur-xl text-slate-100"
+    : "glass-panel chat-surface-light theme-animate border-white/70 text-slate-900";
 
   return (
-    <section className={`flex h-full flex-col overflow-hidden rounded-2xl border backdrop-blur-xl ${shell}`}>
+    <section className={`flex h-full flex-col overflow-hidden rounded-2xl border ${shell}`}>
       <header
-        className={`shrink-0 border-b px-5 py-3.5 ${
-          isDarkMode ? "border-slate-800 bg-slate-900/90" : "border-slate-100/80 bg-white/50"
+        className={`theme-animate shrink-0 border-b px-5 py-3.5 ${
+          isDarkMode
+            ? "border-white/[0.06] bg-slate-900/50"
+            : "border-slate-100/80 bg-white/50"
         }`}
       >
         <p className="text-sm font-semibold tracking-tight">Asistente de aprendizaje guiado</p>
-        <p className={`mt-0.5 text-xs ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
-          <span className={isDarkMode ? "text-slate-400" : "text-slate-600"}>{topicLabel}</span>
+        <p className={`theme-animate mt-0.5 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+          <span className={isDarkMode ? "text-slate-300" : "text-slate-600"}>{topicLabel}</span>
           <span className="mx-1.5 opacity-40">·</span>
           {levelLabel}
           <span className="mx-1.5 opacity-40">·</span>
@@ -58,12 +62,12 @@ export function ChatWindow({
       </header>
 
       {showTopicSelector && (
-        <div className={`shrink-0 border-b px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-900/80" : "border-slate-100 bg-blue-50/30"}`}>
+        <div className={`theme-animate shrink-0 border-b px-4 py-3 ${isDarkMode ? "border-white/[0.06] bg-slate-900/60" : "border-slate-100 bg-blue-50/30"}`}>
           {topicSelector}
         </div>
       )}
       {toolsPanel && (
-        <div className={`chat-scroll shrink-0 max-h-[40vh] overflow-y-auto border-b px-4 py-3 ${isDarkMode ? "border-slate-800 bg-slate-900/60" : "border-slate-100 bg-slate-50/50"}`}>
+        <div className={`chat-scroll theme-animate shrink-0 max-h-[40vh] overflow-y-auto border-b px-4 py-3 ${isDarkMode ? "border-white/[0.06] bg-slate-900/40" : "border-slate-100 bg-slate-50/50"}`}>
           {toolsPanel}
         </div>
       )}
@@ -71,13 +75,17 @@ export function ChatWindow({
       <div
         ref={bodyRef}
         onScroll={onBodyScroll}
-        className={`chat-scroll chat-scroll-smooth flex-1 space-y-3 overflow-y-auto px-4 py-5 sm:px-6 ${
-          isDarkMode ? "bg-slate-950/50" : "bg-gradient-to-b from-slate-50/30 to-transparent"
+        className={`chat-scroll chat-scroll-smooth theme-animate flex-1 space-y-3 overflow-y-auto px-4 py-5 sm:px-6 ${
+          isDarkMode ? "chat-scroll-dark chat-body-dark" : "bg-gradient-to-b from-slate-50/30 to-transparent"
         }`}
       >
-        {messages.length === 1 && messages[0].id === "assistant-welcome" && (
-          <div className={`animate-fade-up rounded-2xl border border-dashed px-4 py-6 text-center ${isDarkMode ? "border-slate-700 bg-slate-900/50 text-slate-400" : "border-slate-200 bg-white/60 text-slate-500"}`}>
-            <p className="text-sm">Escribe tu pregunta o adjunta una imagen para comenzar.</p>
+        {messages.length === 0 && emptyState && (
+          <div className={`theme-animate animate-fade-up rounded-2xl border border-dashed px-4 py-8 text-center ${
+            isDarkMode
+              ? "border-indigo-400/15 bg-indigo-950/20 text-slate-400"
+              : "border-slate-200 bg-white/60 text-slate-500"
+          }`}>
+            <p className="text-sm">{emptyState}</p>
           </div>
         )}
         {messages.map((message) => (
@@ -86,11 +94,11 @@ export function ChatWindow({
           </div>
         ))}
         {isSending && (
-          <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${isDarkMode ? "bg-slate-900/80" : "bg-white/80"}`}>
+          <div className={`theme-animate flex items-center gap-3 rounded-2xl px-4 py-3 ${isDarkMode ? "bg-slate-800/50" : "bg-white/80"}`}>
             <div className="flex items-center gap-1">
-              <span className="h-2 w-2 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.2s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.1s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-blue-500" />
+              <span className={`h-2 w-2 animate-bounce rounded-full [animation-delay:-0.2s] ${isDarkMode ? "bg-indigo-400" : "bg-blue-500"}`} />
+              <span className={`h-2 w-2 animate-bounce rounded-full [animation-delay:-0.1s] ${isDarkMode ? "bg-indigo-400" : "bg-blue-500"}`} />
+              <span className={`h-2 w-2 animate-bounce rounded-full ${isDarkMode ? "bg-indigo-400" : "bg-blue-500"}`} />
             </div>
             <span className={`text-xs font-medium ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
               El tutor está escribiendo…

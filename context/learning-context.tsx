@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useAuth } from "@/context/auth-context";
 
 export type StudentProfile = {
   subjects: string[];
@@ -27,18 +36,68 @@ type LearningContextValue = {
 const LearningContext = createContext<LearningContextValue | undefined>(undefined);
 const STORAGE_KEY = "educa-ai-profile";
 
+function readLocalProfile(): StudentProfile | null {
+  if (typeof window === "undefined") return null;
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return null;
+  try {
+    return { ...defaultProfile, ...(JSON.parse(saved) as Partial<StudentProfile>) };
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return null;
+  }
+}
+
+function hasProfileData(profile: StudentProfile | null) {
+  return Boolean(
+    profile && (profile.subjects.length || profile.topic || profile.level),
+  );
+}
+
 export function LearningProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfileState] = useState<StudentProfile>(() => {
-    if (typeof window === "undefined") return defaultProfile;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return defaultProfile;
-    try {
-      return JSON.parse(saved) as StudentProfile;
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      return defaultProfile;
-    }
-  });
+  const { user } = useAuth();
+  const [profile, setProfileState] = useState<StudentProfile>(
+    () => readLocalProfile() ?? defaultProfile,
+  );
+  const syncedUserRef = useRef<string | null>(null);
+
+  // Al iniciar sesión: carga el perfil desde la BD y, si la BD está vacía
+  // pero localStorage tiene datos, migra el perfil local al servidor.
+  useEffect(() => {
+    if (!user?.id || syncedUserRef.current === user.id) return;
+    syncedUserRef.current = user.id;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/profile");
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          profile?: Partial<StudentProfile>;
+        };
+        const server: StudentProfile = {
+          ...defaultProfile,
+          ...data.profile,
+        };
+
+        const local = readLocalProfile();
+        if (!hasProfileData(server) && hasProfileData(local)) {
+          // Migración localStorage -> BD
+          await fetch("/api/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(local),
+          }).catch(() => null);
+          setProfileState(local as StudentProfile);
+          return;
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(server));
+        setProfileState(server);
+      } catch {
+        // sin red o modo demo: se mantiene el perfil local
+      }
+    })();
+  }, [user?.id]);
 
   const setProfile = (next: Partial<StudentProfile>) => {
     setProfileState((current) => {
@@ -46,11 +105,21 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       return merged;
     });
+    void fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    }).catch(() => null);
   };
 
   const clearProfile = () => {
     localStorage.removeItem(STORAGE_KEY);
     setProfileState(defaultProfile);
+    void fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(defaultProfile),
+    }).catch(() => null);
   };
 
   const value = useMemo(() => ({ profile, setProfile, clearProfile }), [profile]);

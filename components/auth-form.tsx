@@ -10,19 +10,31 @@ type AuthMode = "login" | "register";
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const isRegister = mode === "register";
   const router = useRouter();
-  const { login, register, isLoading } = useAuth();
+  const { login, register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (isRegister) {
-      await register(name || "Estudiante", email);
-    } else {
-      await login(email);
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      if (isRegister) {
+        await register(name.trim() || "Estudiante", email.trim(), password);
+      } else {
+        await login(email.trim(), password);
+      }
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Ocurrió un error. Intenta de nuevo.",
+      );
+      setIsSubmitting(false);
     }
-    router.push("/dashboard");
   };
 
   return (
@@ -50,17 +62,23 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       <input
         type="password"
         className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
-        placeholder="Contrasena"
+        placeholder="Contrasena (minimo 6 caracteres)"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
+        minLength={6}
         required
       />
+      {error && (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+          {error}
+        </p>
+      )}
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isSubmitting}
         className="gradient-accent w-full rounded-xl px-4 py-2.5 font-medium transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isLoading ? (
+        {isSubmitting ? (
           <span className="inline-flex items-center justify-center">
             <LoadingSpinner label={isRegister ? "Creando cuenta..." : "Iniciando sesion..."} />
           </span>

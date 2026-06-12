@@ -26,8 +26,8 @@ export function ImageUpload({
   isDarkMode = false,
 }: ImageUploadProps) {
   const btnClass = isDarkMode
-    ? "border-slate-600 bg-slate-800 text-slate-300 hover:bg-slate-700"
-    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700";
+    ? "theme-animate border-white/[0.1] bg-slate-800/60 text-slate-300 hover:border-indigo-400/25 hover:bg-slate-800"
+    : "theme-animate border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700";
 
   return (
     <>

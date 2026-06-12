@@ -1,14 +1,10 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
 
 type User = {
+  id: string;
   name: string;
   email: string;
 };
@@ -16,44 +12,70 @@ type User = {
 type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
-  login: (email: string) => Promise<void>;
-  register: (name: string, email: string) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+async function loginWithCredentials(email: string, password: string) {
+  const result = await signIn("credentials", {
+    email,
+    password,
+    redirect: false,
+  });
+  if (result?.error) {
+    throw new Error("Correo o contraseña incorrectos.");
+  }
+}
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+function InnerAuthProvider({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession();
 
-  const login = async (email: string) => {
-    setIsLoading(true);
-    await wait(600);
-    setUser({
-      name: email.split("@")[0] || "Student",
-      email,
-    });
-    setIsLoading(false);
-  };
+  const value = useMemo<AuthContextValue>(() => {
+    const user = session?.user
+      ? {
+          id: session.user.id ?? "",
+          name: session.user.name ?? "Estudiante",
+          email: session.user.email ?? "",
+        }
+      : null;
 
-  const register = async (name: string, email: string) => {
-    setIsLoading(true);
-    await wait(700);
-    setUser({ name, email });
-    setIsLoading(false);
-  };
-
-  const logout = () => setUser(null);
-
-  const value = useMemo(
-    () => ({ user, isLoading, login, register, logout }),
-    [user, isLoading],
-  );
+    return {
+      user,
+      isLoading: status === "loading",
+      login: loginWithCredentials,
+      register: async (name, email, password) => {
+        const response = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        });
+        if (!response.ok) {
+          const data = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(data?.error ?? "No se pudo crear la cuenta.");
+        }
+        await loginWithCredentials(email, password);
+      },
+      logout: async () => {
+        await signOut({ redirect: false });
+        window.location.href = "/login";
+      },
+    };
+  }, [session, status]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  return (
+    <SessionProvider>
+      <InnerAuthProvider>{children}</InnerAuthProvider>
+    </SessionProvider>
+  );
 }
 
 export function useAuth() {

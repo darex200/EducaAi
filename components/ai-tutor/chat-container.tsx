@@ -45,6 +45,14 @@ function topicIdFromTitle(title: string, index: number) {
 }
 
 
+function isLegacyWelcomeMessage(message: TutorMessage) {
+  return (
+    message.role === "assistant" &&
+    (message.id === "assistant-welcome" ||
+      /^Hola\. Veo que estás estudiando/i.test(message.content.trim()))
+  );
+}
+
 function toDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -112,27 +120,17 @@ export function ChatContainer() {
     },
     [profile.difficulty, profile.generatedTopics, profile.topic],
   );
-  const preferredTopicId = profile.topic
-    ? dynamicTopics.find((topic) => topicMatches(topic.title, profile.topic))?.id ?? ""
-    : "";
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const selectedTopic = useMemo(
-    () => {
-      const explicitlySelectedTopic = dynamicTopics.find((topic) => topic.id === selectedTopicId);
-      if (explicitlySelectedTopic) return explicitlySelectedTopic;
-      if (!selectedTopicId && preferredTopicId) {
-        return dynamicTopics.find((topic) => topic.id === preferredTopicId);
-      }
-      return undefined;
-    },
-    [dynamicTopics, preferredTopicId, selectedTopicId],
+    () => dynamicTopics.find((topic) => topic.id === selectedTopicId),
+    [dynamicTopics, selectedTopicId],
   );
-  const visibleSelectedTopicId = selectedTopic?.id ?? "";
-  const activeTopicTitle = selectedTopic?.title || profile.topic;
-  const activeDifficulty = selectedTopic?.difficulty || profile.difficulty;
+  const hasExplicitTopic = Boolean(selectedTopic);
+  const activeTopicTitle = selectedTopic?.title ?? "";
+  const activeDifficulty = selectedTopic?.difficulty ?? "No definido";
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -161,12 +159,14 @@ export function ChatContainer() {
         };
       };
       if (!data.conversation) return false;
-      const loaded: TutorMessage[] = data.conversation.messages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        imageDataUrl: message.imageUrl ?? undefined,
-      }));
+      const loaded: TutorMessage[] = data.conversation.messages
+        .map((message) => ({
+          id: message.id,
+          role: message.role,
+          content: message.content,
+          imageDataUrl: message.imageUrl ?? undefined,
+        }))
+        .filter((message) => !isLegacyWelcomeMessage(message));
       setMessages(loaded);
       setConversationId(id);
       setIsNewChat(false);
@@ -175,7 +175,13 @@ export function ChatContainer() {
     } catch {
       return false;
     }
-  }, [profile.topic]);
+  }, []);
+
+  // Limpia caché antigua del chat en localStorage (ya no se usa).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem("educa-ai-chat-state");
+  }, []);
 
   // Al entrar con sesión: solo carga el historial, sin restaurar conversación automáticamente.
   useEffect(() => {
@@ -195,9 +201,22 @@ export function ChatContainer() {
     return () => cancelAnimationFrame(frame);
   }, [messages, isSending, shouldAutoScroll]);
 
-  useEffect(() => {
-    scrollChatToBottom("smooth");
-  }, [visibleSelectedTopicId]);
+  const clearChat = useCallback(() => {
+    setMessages([]);
+    setConversationId(null);
+    setIsNewChat(false);
+    setError(null);
+    setContent(null);
+    setShowGuidedPractice(false);
+  }, []);
+
+  const handleSelectTopic = (topicId: string) => {
+    if (topicId === selectedTopicId) return;
+    setSelectedTopicId(topicId);
+    clearChat();
+    setContent(null);
+    setShowGuidedPractice(false);
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -213,15 +232,9 @@ export function ChatContainer() {
     }
   }, [conversationId]);
 
-  const clearChat = useCallback(() => {
-    setMessages([]);
-    setConversationId(null);
-    setIsNewChat(false);
-    setError(null);
-    setContent(null);
-    setShowGuidedPractice(false);
-  }, []);
-
+  useEffect(() => {
+    scrollChatToBottom("smooth");
+  }, [selectedTopicId]);
 
   const handleSend = async ({
     text,
@@ -293,8 +306,8 @@ export function ChatContainer() {
   };
 
   const handleNewChat = () => {
-    if (!activeTopicTitle) {
-      router.push("/onboarding");
+    if (!hasExplicitTopic) {
+      setError("Selecciona un tema en la barra lateral antes de crear una conversación.");
       return;
     }
     setMessages([]);
@@ -330,7 +343,7 @@ export function ChatContainer() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("topic", selectedTopic?.title || profile.topic || "");
+      formData.append("topic", activeTopicTitle);
       const response = await fetch("/api/documents", {
         method: "POST",
         body: formData,
@@ -403,8 +416,8 @@ export function ChatContainer() {
           isAnalyzingDocument={isAnalyzingDocument}
           practiceEnabled={showGuidedPractice}
           topics={dynamicTopics}
-          selectedTopicId={visibleSelectedTopicId}
-          onSelectTopic={setSelectedTopicId}
+          selectedTopicId={selectedTopicId}
+          onSelectTopic={handleSelectTopic}
           conversations={conversations}
           activeConversationId={conversationId}
           onSelectConversation={(id) => {
@@ -434,21 +447,23 @@ export function ChatContainer() {
           isDarkMode={isDarkMode}
           emptyState={
             isNewChat
-              ? "Nueva conversación. Escribe tu primera pregunta para comenzar."
+              ? hasExplicitTopic
+                ? `Nueva conversación sobre ${activeTopicTitle}. Escribe tu primera pregunta para comenzar.`
+                : "Selecciona un tema en la barra lateral para comenzar."
               : "No se ha seleccionado una conversación. Elige una del historial o crea una nueva."
           }
-          topicLabel={activeTopicTitle || "No seleccionado"}
+          topicLabel={hasExplicitTopic ? activeTopicTitle : "No seleccionado"}
           levelLabel={profile.level || "No definido"}
-          difficultyLabel={activeDifficulty}
+          difficultyLabel={hasExplicitTopic ? activeDifficulty : "No definido"}
           showTopicSelector={showTopicSelector}
           topicSelector={
             <TopicSelector
               onApply={(topic) => {
                 setShowTopicSelector(false);
-                setSelectedTopicId(
-                  dynamicTopics.find((item) => topicMatches(item.title, topic))?.id ?? topicIdFromTitle(topic, 0),
-                );
-                clearChat();
+                const topicId =
+                  dynamicTopics.find((item) => topicMatches(item.title, topic))?.id ??
+                  topicIdFromTitle(topic, 0);
+                handleSelectTopic(topicId);
               }}
             />
           }
@@ -463,7 +478,7 @@ export function ChatContainer() {
           input={
             <ChatInput
               onSend={handleSend}
-              disabled={isSending || isAnalyzingDocument || (!conversationId && !isNewChat)}
+              disabled={isSending || isAnalyzingDocument || (!conversationId && !isNewChat) || (isNewChat && !hasExplicitTopic)}
               isDarkMode={isDarkMode}
             />
           }

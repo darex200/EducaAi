@@ -3,6 +3,7 @@
 import Image from "next/image";
 import type { TutorMessage } from "@/components/ai-tutor/types";
 import { AIResponseFormatter } from "@/components/chat/ai-response-formatter";
+import { useLanguage } from "@/context/language-context";
 
 type MessageBubbleProps = {
   message: TutorMessage;
@@ -10,6 +11,7 @@ type MessageBubbleProps = {
 };
 
 export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
+  const { t } = useLanguage();
   const isUser = message.role === "user";
 
   const assistantBubble = isDarkMode
@@ -35,7 +37,7 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
           isUser ? avatarUser : avatarAssistant
         }`}
       >
-        {isUser ? "Tú" : "IA"}
+        {isUser ? t("userAvatar") : t("assistantAvatar")}
       </div>
       <div
         className={`max-w-[min(88%,42rem)] rounded-2xl px-3.5 py-2.5 text-[13px] leading-[1.55] ${
@@ -45,7 +47,7 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
         {message.imageDataUrl && (
           <Image
             src={message.imageDataUrl}
-            alt={isUser ? "Imagen enviada" : "Imagen generada"}
+            alt={isUser ? t("imageSent") : t("imageGenerated")}
             className="mb-2 max-h-80 w-full rounded-xl object-contain ring-1 ring-white/20"
             width={640}
             height={480}
@@ -55,7 +57,7 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
         {!message.imageDataUrl && message.generatedImageUrl && (
           <Image
             src={message.generatedImageUrl}
-            alt="Ilustración educativa generada"
+            alt={t("imageGenerated")}
             className="mb-2 max-h-80 w-full rounded-xl object-contain ring-1 ring-blue-400/20"
             width={1024}
             height={1024}

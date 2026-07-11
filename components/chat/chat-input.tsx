@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ImageUpload } from "@/components/chat/image-upload";
+import { useLanguage } from "@/context/language-context";
 
 type ChatInputProps = {
   onSend: (payload: { text: string; imageFile: File | null }) => Promise<void>;
@@ -10,6 +11,7 @@ type ChatInputProps = {
 };
 
 export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
+  const { t } = useLanguage();
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -79,7 +81,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
             }
           }}
           rows={1}
-          placeholder="Pregunta lo que quieras, pide una ilustración (ej. «genera un diagrama de…») o adjunta una imagen…"
+          placeholder={t("inputPlaceholder")}
           disabled={disabled}
           className={`theme-animate max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border-0 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:opacity-60 ${
             isDarkMode ? "text-[var(--dark-text)] placeholder:text-[var(--dark-text-muted)]" : "text-slate-800 placeholder:text-slate-400"
@@ -89,7 +91,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
           type="submit"
           disabled={disabled || (!text.trim() && !imageFile)}
           className="btn-hover-primary relative mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 text-white shadow-md shadow-blue-600/35 disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label="Enviar mensaje"
+          aria-label={t("sendMessage")}
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 19V5M5 12l7-7 7 7" />
@@ -97,7 +99,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
         </button>
       </div>
       <p className={`theme-animate mt-2 text-center text-[10px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400"}`}>
-        Enter para enviar · Shift+Enter para nueva línea
+        {t("inputHint")}
       </p>
     </form>
   );

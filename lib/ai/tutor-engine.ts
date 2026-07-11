@@ -1,3 +1,6 @@
+import type { AppLocale } from "@/lib/i18n/translations";
+import { DEFAULT_LOCALE, localeInstruction } from "@/lib/i18n/translations";
+
 export type AdaptiveStudent = {
   name?: string | null;
   birthYear?: number | null;
@@ -26,6 +29,7 @@ export type AdaptiveContext = {
   mastery?: AdaptiveMastery;
   topic?: string;
   hasImage?: boolean;
+  locale?: AppLocale;
 };
 
 function estimateAge(birthYear?: number | null) {
@@ -65,7 +69,7 @@ function masteryGuidance(mastery: AdaptiveMastery) {
  * Sustituye a buildTutorSystemPrompt de lib/tutor.ts cuando hay datos del estudiante.
  */
 export function buildAdaptiveSystemPrompt(context: AdaptiveContext = {}) {
-  const { student, profile, mastery, topic } = context;
+  const { student, profile, mastery, topic, locale = DEFAULT_LOCALE } = context;
   const age = estimateAge(student?.birthYear);
 
   const weaknesses = (profile?.weaknesses ?? []).slice(0, 6);
@@ -122,7 +126,7 @@ export function buildAdaptiveSystemPrompt(context: AdaptiveContext = {}) {
     `- Nivel académico: ${student?.academicLevel ?? "no especificado"}`,
     `- Tema actual: ${topic || "no especificado"}`,
     ...(profile?.goals ? [`- Objetivo declarado: ${profile.goals}`] : []),
-    "- Responde siempre en español.",
+    `- ${localeInstruction(locale)}`,
     "- No ayudes a hacer trampa en exámenes en curso.",
     "- Evita repetir exactamente la misma redacción entre respuestas.",
     "",

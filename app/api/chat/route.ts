@@ -11,9 +11,13 @@ import { runDiagnostics } from "@/lib/ai/diagnostics";
 import {
   buildEducationalImagePrompt,
   generateEducationalImage,
-  imageGenerationUnavailableMessage,
   wantsImageGeneration,
 } from "@/lib/ai/images";
+import {
+  DEFAULT_LOCALE,
+  type AppLocale,
+  t,
+} from "@/lib/i18n/translations";
 import {
   chatCompletion,
   hasOpenAIKey,
@@ -26,6 +30,10 @@ type ChatRequestBody = {
   conversationId?: string;
   generateImage?: boolean;
 };
+
+function normalizeLocale(value?: string): AppLocale {
+  return value === "es" ? "es" : DEFAULT_LOCALE;
+}
 
 function mapToOpenAIMessages(messages: TutorMessage[]): OpenAIChatMessage[] {
   return messages.map((message) => {
@@ -136,6 +144,7 @@ export async function POST(request: Request) {
       .find((message) => message.role === "user");
     const hasImage = latestMessages.some((message) => Boolean(message.imageDataUrl));
     const topic = (context?.topic ?? "").trim();
+    const locale = normalizeLocale(context?.locale);
 
     const userId = await getAuthUserId();
     let conversationId: string | null = null;
@@ -160,13 +169,14 @@ export async function POST(request: Request) {
 
     // Prompt adaptativo: con BD usa perfil/mastery reales; sin BD usa el contexto del cliente.
     const adaptiveContext: AdaptiveContext = userId
-      ? await loadAdaptiveContext(userId, topic, hasImage)
+      ? { ...(await loadAdaptiveContext(userId, topic, hasImage)), locale }
       : {
           student: { academicLevel: context?.level || null },
           profile: { subjects: context?.subjects, difficulty: context?.difficulty },
           mastery: null,
           topic,
           hasImage,
+          locale,
         };
 
     let reply: string | null = null;
@@ -186,16 +196,15 @@ export async function POST(request: Request) {
       if (imageResult?.url) {
         generatedImageUrl = imageResult.url;
         reply = topic
-          ? `Aquí tienes una ilustración educativa sobre **${topic}**. ¿Qué parte te gustaría que te explique paso a paso?`
-          : "Aquí tienes la ilustración educativa que pediste. ¿Qué parte te gustaría que te explique paso a paso?";
+          ? t(locale, "imageReplyWithTopic", { topic })
+          : t(locale, "imageReply");
         mode = "openai-image";
       } else {
-        reply = imageGenerationUnavailableMessage();
+        reply = t(locale, "imageGenerationFailed");
         mode = "openai-image-error";
       }
     } else if (shouldGenerateImage && !hasOpenAIKey()) {
-      reply =
-        "Para generar ilustraciones educativas configura `OPENAI_API_KEY` en el servidor. Luego escribe, por ejemplo: **Genera un diagrama de la célula**.";
+      reply = t(locale, "imageApiKeyMissing");
       mode = "image-unconfigured";
     }
 
@@ -219,7 +228,7 @@ export async function POST(request: Request) {
     }
 
     if (!reply) {
-      reply = buildGuidedReply(latestMessages, context);
+      reply = buildGuidedReply(latestMessages, { ...context, locale });
     }
 
     // Persistencia de la respuesta + diagnóstico sin bloquear la respuesta.
@@ -261,7 +270,7 @@ export async function POST(request: Request) {
     console.error("[chat] error:", error);
     return NextResponse.json(
       {
-        reply: "Tuve un problema temporal. Reenvia tu pregunta y te guiare paso a paso.",
+        reply: t(DEFAULT_LOCALE, "chatErrorFallback"),
         meta: { mode: "error", dbConfigured: isDbConfigured() },
       },
       { status: 500 },

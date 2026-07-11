@@ -2,6 +2,7 @@
 
 import type { TutorMessage } from "@/components/ai-tutor/types";
 import { MessageBubble } from "@/components/chat/message-bubble";
+import { useLanguage } from "@/context/language-context";
 
 type ChatWindowProps = {
   messages: TutorMessage[];
@@ -38,6 +39,7 @@ export function ChatWindow({
   error,
   toolsPanel,
 }: ChatWindowProps) {
+  const { t } = useLanguage();
   const shell = isDarkMode
     ? "chat-surface-dark theme-animate backdrop-blur-xl text-slate-100"
     : "glass-panel chat-surface-light theme-animate border-white/70 text-slate-900";
@@ -49,7 +51,7 @@ export function ChatWindow({
           isDarkMode ? "dark-header" : "border-slate-100/80 bg-white/50"
         }`}
       >
-        <p className="text-sm font-semibold tracking-tight">Asistente de aprendizaje guiado</p>
+        <p className="text-sm font-semibold tracking-tight">{t("assistantTitle")}</p>
         <p className={`theme-animate mt-0.5 text-xs ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
           <span className={isDarkMode ? "text-[var(--dark-text-soft)]" : "text-slate-600"}>{topicLabel}</span>
           <span className="mx-1.5 opacity-40">·</span>
@@ -97,7 +99,7 @@ export function ChatWindow({
               <span className={`h-2 w-2 animate-bounce rounded-full ${isDarkMode ? "bg-blue-400" : "bg-blue-500"}`} />
             </div>
             <span className={`text-xs font-medium ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
-              El tutor está escribiendo…
+              {t("typing")}
             </span>
           </div>
         )}

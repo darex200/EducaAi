@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useLanguage } from "@/context/language-context";
+import { difficultyLabel } from "@/lib/i18n/translations";
 
 export type TopicItem = {
   id: string;
@@ -8,12 +10,6 @@ export type TopicItem = {
   description: string;
   category: string;
   difficulty: "basico" | "intermedio" | "avanzado";
-};
-
-const difficultyLabels: Record<TopicItem["difficulty"], string> = {
-  basico: "Básico",
-  intermedio: "Intermedio",
-  avanzado: "Avanzado",
 };
 
 type TopicCardProps = {
@@ -31,6 +27,7 @@ export function TopicCard({
   onSelect,
   registerRef,
 }: TopicCardProps) {
+  const { locale } = useLanguage();
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -72,7 +69,7 @@ export function TopicCard({
             isDarkMode ? "dark-chip-indigo" : "bg-indigo-50 text-indigo-700"
           }`}
         >
-          {difficultyLabels[topic.difficulty]}
+          {difficultyLabel(locale, topic.difficulty)}
         </span>
       </div>
     </button>

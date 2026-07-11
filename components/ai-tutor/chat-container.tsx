@@ -10,9 +10,11 @@ import { ContentViewer } from "@/components/chat/content-viewer";
 import { GuidedPractice } from "@/components/chat/guided-practice";
 import { TopicSelector } from "@/components/onboarding/topic-selector";
 import { useAuth } from "@/context/auth-context";
+import { useLanguage } from "@/context/language-context";
 import { useLearning } from "@/context/learning-context";
 import type { TutorMessage } from "@/components/ai-tutor/types";
 import { wantsImageGeneration } from "@/lib/ai/images";
+import { difficultyLabel } from "@/lib/i18n/translations";
 import { lessons } from "@/lib/lessons";
 
 const ACTIVE_CONVERSATION_KEY = "educa-ai-active-conversation";
@@ -65,6 +67,7 @@ function toDataUrl(file: File) {
 export function ChatContainer() {
   const { user, logout } = useAuth();
   const { profile } = useLearning();
+  const { locale, t } = useLanguage();
   const [messages, setMessages] = useState<TutorMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,8 +112,8 @@ export function ChatContainer() {
       const customTopics = customTopicTitles.map((topic, index) => ({
         id: `topic-custom-${index}-${topicIdFromTitle(topic, index).replace(/^topic-/, "")}`,
         title: topic,
-        description: `Tema personalizado para trabajar ${topic} con el tutor IA.`,
-        category: "Personalizado",
+        description: t("customTopicDescription", { topic }),
+        category: t("categoryCustom"),
         difficulty: profile.difficulty,
       }));
 
@@ -121,7 +124,7 @@ export function ChatContainer() {
         return true;
       });
     },
-    [profile.difficulty, profile.generatedTopics, profile.topic],
+    [profile.difficulty, profile.generatedTopics, profile.topic, t],
   );
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -133,7 +136,9 @@ export function ChatContainer() {
   );
   const hasExplicitTopic = Boolean(selectedTopic);
   const activeTopicTitle = selectedTopic?.title ?? "";
-  const activeDifficulty = selectedTopic?.difficulty ?? "No definido";
+  const activeDifficulty = selectedTopic
+    ? difficultyLabel(locale, selectedTopic.difficulty)
+    : t("difficultyNotSet");
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -252,7 +257,7 @@ export function ChatContainer() {
     const userMessage: TutorMessage = {
       id: `user-${crypto.randomUUID()}`,
       role: "user",
-      content: text || "Analiza esta imagen, por favor.",
+      content: text || t("analyzeImagePrompt"),
       imageDataUrl,
     };
 
@@ -277,8 +282,9 @@ export function ChatContainer() {
             subjects: profile.subjects,
             level: profile.level,
             topic: activeTopicTitle,
-            difficulty: activeDifficulty,
+            difficulty: selectedTopic?.difficulty ?? profile.difficulty,
             conversationId: conversationId ?? undefined,
+            locale,
           },
         }),
       });
@@ -306,7 +312,7 @@ export function ChatContainer() {
         void refreshConversations();
       }
     } catch {
-      setError("Error al contactar el tutor IA. Verifica tu API key e intenta de nuevo.");
+      setError(t("chatError"));
     } finally {
       setIsSending(false);
     }
@@ -449,12 +455,12 @@ export function ChatContainer() {
           isDarkMode={isDarkMode}
           emptyState={
             hasExplicitTopic
-              ? `Pregunta lo que quieras sobre ${activeTopicTitle}.`
-              : "Escribe tu pregunta para comenzar."
+              ? t("emptyChatWithTopic", { topic: activeTopicTitle })
+              : t("emptyChat")
           }
-          topicLabel={hasExplicitTopic ? activeTopicTitle : "No seleccionado"}
-          levelLabel={profile.level || "No definido"}
-          difficultyLabel={hasExplicitTopic ? activeDifficulty : "No definido"}
+          topicLabel={hasExplicitTopic ? activeTopicTitle : t("topicNotSelected")}
+          levelLabel={profile.level || t("levelNotSet")}
+          difficultyLabel={hasExplicitTopic ? activeDifficulty : t("difficultyNotSet")}
           showTopicSelector={showTopicSelector}
           topicSelector={
             <TopicSelector

@@ -1,3 +1,6 @@
+import type { AppLocale } from "@/lib/i18n/translations";
+import { DEFAULT_LOCALE, localeInstruction } from "@/lib/i18n/translations";
+
 export type TutorMessage = {
   role: "user" | "assistant";
   content: string;
@@ -10,6 +13,7 @@ export type TutorStudentContext = {
   topic?: string;
   difficulty?: "basico" | "intermedio" | "avanzado";
   conversationId?: string;
+  locale?: AppLocale;
 };
 
 const forbiddenAnswerPatterns = [
@@ -42,28 +46,42 @@ function inferTopic(text: string) {
 }
 
 export function buildGuidedReply(messages: TutorMessage[], context?: TutorStudentContext) {
+  const locale = context?.locale ?? DEFAULT_LOCALE;
   const lastUserMessage =
     [...messages].reverse().find((message) => message.role === "user")?.content ??
-    "Empecemos.";
+    (locale === "es" ? "Empecemos." : "Let's begin.");
   const topic = inferTopic(lastUserMessage);
   const askedForDirectAnswer = forbiddenAnswerPatterns.some((pattern) => pattern.test(lastUserMessage));
 
   if (askedForDirectAnswer) {
-    return [
-      "Puedo ayudarte, pero no proporciono respuestas finales directas.",
-      "Descríbeme qué intentaste y en qué paso encontraste dificultad.",
-      "¿Cuál fue el último paso correcto que lograste completar?",
-    ].join(" ");
+    return locale === "es"
+      ? [
+          "Puedo ayudarte, pero no proporciono respuestas finales directas.",
+          "Descríbeme qué intentaste y en qué paso encontraste dificultad.",
+          "¿Cuál fue el último paso correcto que lograste completar?",
+        ].join(" ")
+      : [
+          "I can help, but I don't provide direct final answers.",
+          "Tell me what you tried and where you got stuck.",
+          "What was the last correct step you completed?",
+        ].join(" ");
   }
 
-  return [
-    "Abordaremos este problema mediante aprendizaje guiado.",
-    `Tu consulta fue: "${lastUserMessage}". Parece un tema de ${context?.topic || topic}. Iniciaremos con un primer paso corto y verificable.`,
-    "¿Qué regla, principio o fórmula consideras adecuada para comenzar?",
-  ].join(" ");
+  return locale === "es"
+    ? [
+        "Abordaremos este problema mediante aprendizaje guiado.",
+        `Tu consulta fue: "${lastUserMessage}". Parece un tema de ${context?.topic || topic}. Iniciaremos con un primer paso corto y verificable.`,
+        "¿Qué regla, principio o fórmula consideras adecuada para comenzar?",
+      ].join(" ")
+    : [
+        "We'll tackle this through guided learning.",
+        `Your question was: "${lastUserMessage}". It looks like a ${context?.topic || topic} topic. We'll start with one short, verifiable step.`,
+        "Which rule, principle, or formula do you think fits to begin?",
+      ].join(" ");
 }
 
 export function buildTutorSystemPrompt(context?: TutorStudentContext) {
+  const locale = context?.locale ?? DEFAULT_LOCALE;
   return [
     "Eres un tutor academico experto y exigente con claridad. Tu objetivo es ayudar al estudiante a comprender, no solo a obtener una respuesta.",
     "",
@@ -96,7 +114,7 @@ export function buildTutorSystemPrompt(context?: TutorStudentContext) {
     `- Tema: ${context?.topic || "no especificado"}`,
     `- Dificultad: ${context?.difficulty || "basico"}`,
     `- Conversacion: ${context?.conversationId || "sin-id"}`,
-    "- Responde siempre en español",
+    `- ${localeInstruction(locale)}`,
     "- No ayudes a hacer trampa en exámenes",
     "- Evita repetir exactamente la misma redacción entre respuestas.",
   ].join("\n");

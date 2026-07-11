@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { TopicCard } from "@/components/chat/topic-card";
+import { useLanguage } from "@/context/language-context";
 
 export type ConversationSummary = {
   id: string;
@@ -118,6 +119,7 @@ export function Sidebar({
   onDeleteConversation,
   onLogout,
 }: SidebarProps) {
+  const { t } = useLanguage();
   const sectionLabel = isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400";
   const sidebarScrollRef = useRef<HTMLDivElement>(null);
   const topicCardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -173,7 +175,9 @@ export function Sidebar({
           <BrandLogo className="h-10 w-10 drop-shadow-[0_8px_14px_rgba(37,99,235,0.25)]" />
           <div>
             <p className="text-base font-semibold tracking-tight">Educa AI</p>
-            <p className={`text-[11px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>Tutor académico guiado</p>
+            <p className={`text-[11px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
+              {t("guidedTutor")}
+            </p>
           </div>
         </div>
       </div>
@@ -185,25 +189,25 @@ export function Sidebar({
             onClick={onNewChat}
             className="btn-hover-primary relative mb-5 w-full overflow-hidden rounded-xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_18px_rgba(37,99,235,0.38)]"
           >
-            + Nueva conversación
+            {t("newConversation")}
           </button>
 
           <section className="mb-5">
             <p className={`mb-2.5 px-1 text-[10px] font-semibold uppercase tracking-widest ${sectionLabel}`}>
-              Herramientas IA
+              {t("aiTools")}
             </p>
             <div className="space-y-1.5">
               <ToolButton isDarkMode={isDarkMode} onClick={onGenerateQuiz}>
-                Generar cuestionario
+                {t("generateQuiz")}
               </ToolButton>
               <ToolButton isDarkMode={isDarkMode} onClick={onExploreContent}>
-                Explorar contenido
+                {t("exploreContent")}
               </ToolButton>
               <ToolButton isDarkMode={isDarkMode} onClick={onToggleGuidedPractice} active={practiceEnabled}>
-                Práctica guiada
+                {t("guidedPractice")}
               </ToolButton>
               <ToolButton isDarkMode={isDarkMode} onClick={onAnalyzeDocument}>
-                {isAnalyzingDocument ? "Analizando documento…" : "Analizar documento"}
+                {isAnalyzingDocument ? t("analyzingDocument") : t("analyzeDocument")}
               </ToolButton>
             </div>
           </section>
@@ -211,7 +215,7 @@ export function Sidebar({
           {conversations.length > 0 && (
             <section className="mb-5">
               <p className={`mb-2.5 px-1 text-[10px] font-semibold uppercase tracking-widest ${sectionLabel}`}>
-                Historial
+                {t("history")}
               </p>
               <div className="space-y-1">
                 {conversations.map((conversation) => {
@@ -251,7 +255,7 @@ export function Sidebar({
                       <button
                         type="button"
                         onClick={() => onDeleteConversation(conversation.id)}
-                        aria-label="Eliminar conversación"
+                        aria-label={t("deleteConversation")}
                         className={`shrink-0 rounded-lg px-1.5 py-0.5 text-xs opacity-0 transition group-hover:opacity-100 ${
                           isDarkMode
                             ? "text-slate-500 hover:bg-red-500/15 hover:text-red-400"
@@ -268,7 +272,9 @@ export function Sidebar({
           )}
 
           <section className="pb-2">
-            <p className={`mb-2.5 px-1 text-[10px] font-semibold uppercase tracking-widest ${sectionLabel}`}>Temas</p>
+            <p className={`mb-2.5 px-1 text-[10px] font-semibold uppercase tracking-widest ${sectionLabel}`}>
+              {t("topics")}
+            </p>
             <select
               value={selectedTopicId}
               onChange={(e) => handleSelectFromDropdown(e.target.value)}
@@ -280,7 +286,7 @@ export function Sidebar({
             >
               {!selectedTopicId && (
                 <option value="" disabled>
-                  Selecciona un tema
+                  {t("selectTopic")}
                 </option>
               )}
               {topics.map((topic) => (
@@ -315,7 +321,7 @@ export function Sidebar({
                 : "btn-hover-lift-light border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50/60"
             }`}
           >
-            Progreso
+            {t("progress")}
           </Link>
           <Link
             href="/dashboard/plan"
@@ -325,18 +331,18 @@ export function Sidebar({
                 : "btn-hover-lift-light border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50/60"
             }`}
           >
-            Plan de estudio
+            {t("studyPlan")}
           </Link>
         </div>
         <FooterButton isDarkMode={isDarkMode} onClick={onChooseTopic}>
-          Cambiar tema
+          {t("changeTopic")}
         </FooterButton>
         <FooterButton isDarkMode={isDarkMode} onClick={onToggleTheme}>
-          {isDarkMode ? "Modo claro" : "Modo oscuro"}
+          {isDarkMode ? t("lightMode") : t("darkMode")}
         </FooterButton>
         <div className="flex items-center gap-2 pt-1">
           <p className={`min-w-0 flex-1 truncate px-1 text-[11px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400"}`}>
-            {userName ? `Sesión: ${userName}` : "Sin sesión"}
+            {userName ? `${t("session")}: ${userName}` : t("noSession")}
           </p>
           <button
             type="button"
@@ -347,7 +353,7 @@ export function Sidebar({
                 : "text-slate-500 hover:bg-red-50 hover:text-red-600"
             }`}
           >
-            Cerrar sesión
+            {t("signOut")}
           </button>
         </div>
       </div>

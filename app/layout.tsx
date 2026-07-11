@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
+import { LanguageProvider } from "@/context/language-context";
 import { LearningProvider } from "@/context/learning-context";
 import "katex/dist/katex.min.css";
 
@@ -22,13 +23,15 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="es"
+      lang="en"
       className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <LearningProvider>{children}</LearningProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <LearningProvider>{children}</LearningProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

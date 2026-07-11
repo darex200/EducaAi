@@ -107,14 +107,19 @@ export function ChatContainer() {
           !lessonTopics.some((lesson) => topicMatches(lesson.title, topic)),
       );
       const customTopics = customTopicTitles.map((topic, index) => ({
-        id: topicIdFromTitle(topic, index),
+        id: `topic-custom-${index}-${topicIdFromTitle(topic, index).replace(/^topic-/, "")}`,
         title: topic,
         description: `Tema personalizado para trabajar ${topic} con el tutor IA.`,
         category: "Personalizado",
         difficulty: profile.difficulty,
       }));
 
-      return [...customTopics, ...lessonTopics];
+      const seenIds = new Set<string>();
+      return [...customTopics, ...lessonTopics].filter((topic) => {
+        if (seenIds.has(topic.id)) return false;
+        seenIds.add(topic.id);
+        return true;
+      });
     },
     [profile.difficulty, profile.generatedTopics, profile.topic],
   );

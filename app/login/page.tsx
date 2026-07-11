@@ -7,7 +7,7 @@ export default function LoginPage() {
     <div className="min-h-screen">
       <Navbar />
       <main className="mx-auto flex max-w-6xl flex-col items-center px-4 py-10 sm:px-6">
-        <AuthForm mode="login" />
+        <AuthForm />
         <p className="mt-4 text-sm text-slate-600">
           También puedes ir directo al{" "}
           <Link href="/" className="font-medium text-indigo-700">

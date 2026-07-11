@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { isDatabaseEnabled } from "@/lib/demo-mode";
 
 const PUBLIC_PATHS = ["/landing", "/login", "/register"];
 
@@ -22,8 +23,8 @@ export const authConfig = {
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      // Modo demo: sin base de datos activada no se exige sesión.
-      if (process.env.ENABLE_DATABASE !== "true" || !process.env.DATABASE_URL) return true;
+      // Modo demo: sin base de datos activada no se exige sesión ni correo.
+      if (!isDatabaseEnabled()) return true;
 
       const isLoggedIn = Boolean(auth?.user);
       const pathname = nextUrl.pathname;

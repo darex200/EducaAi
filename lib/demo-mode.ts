@@ -1,9 +1,15 @@
-/** Activa persistencia en Supabase solo cuando ENABLE_DATABASE=true y hay DATABASE_URL. */
+/**
+ * Modo demo por defecto. Solo activa BD/cuentas con email si APP_MODE=database
+ * (servidor) y NEXT_PUBLIC_APP_MODE=database (cliente), además de DATABASE_URL.
+ */
 export function isDatabaseEnabled() {
-  return process.env.ENABLE_DATABASE === "true" && Boolean(process.env.DATABASE_URL?.trim());
+  return (
+    process.env.APP_MODE === "database" &&
+    process.env.ENABLE_DATABASE === "true" &&
+    Boolean(process.env.DATABASE_URL?.trim())
+  );
 }
 
-/** Flag espejo para el cliente (debe coincidir con ENABLE_DATABASE en el servidor). */
 export function isClientDatabaseEnabled() {
-  return process.env.NEXT_PUBLIC_ENABLE_DATABASE === "true";
+  return process.env.NEXT_PUBLIC_APP_MODE === "database";
 }

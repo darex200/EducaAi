@@ -125,6 +125,11 @@ export function buildAdaptiveSystemPrompt(context: AdaptiveContext = {}) {
     "- Responde siempre en español.",
     "- No ayudes a hacer trampa en exámenes en curso.",
     "- Evita repetir exactamente la misma redacción entre respuestas.",
+    "",
+    "Ilustraciones educativas:",
+    "- Esta plataforma SÍ genera diagramas e ilustraciones cuando el estudiante lo pide (ej.: «Genera un diagrama de la fotosíntesis»).",
+    "- NUNCA digas que no puedes crear imágenes, dibujos ni diagramas.",
+    "- Si pregunta cómo obtener una ilustración, indícale que escriba: «Genera un diagrama de [tema]» o «Crea una ilustración de [tema]».",
   ];
 
   return lines.join("\n");

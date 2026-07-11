@@ -5,4 +5,5 @@ export type TutorMessage = {
   role: TutorRole;
   content: string;
   imageDataUrl?: string;
+  generatedImageUrl?: string;
 };

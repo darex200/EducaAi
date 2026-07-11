@@ -33,11 +33,11 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
   };
 
   const bar = isDarkMode
-    ? "theme-animate border-white/[0.06] bg-slate-900/75"
+    ? "theme-animate dark-input-bar"
     : "theme-animate border-slate-100/90 bg-white/90";
 
   const composer = isDarkMode
-    ? "chat-composer-dark theme-animate focus-within:ring-indigo-500/20"
+    ? "chat-composer-dark theme-animate focus-within:ring-blue-500/20"
     : "theme-animate border-slate-200/90 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.06)] focus-within:ring-blue-500/25";
 
   return (
@@ -79,16 +79,16 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
             }
           }}
           rows={1}
-          placeholder="Pregunta con claridad, adjunta una imagen o continúa tu conversación…"
+          placeholder="Pregunta lo que quieras, pide una ilustración (ej. «genera un diagrama de…») o adjunta una imagen…"
           disabled={disabled}
           className={`theme-animate max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border-0 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:opacity-60 ${
-            isDarkMode ? "text-slate-100 placeholder:text-slate-500" : "text-slate-800 placeholder:text-slate-400"
+            isDarkMode ? "text-[var(--dark-text)] placeholder:text-[var(--dark-text-muted)]" : "text-slate-800 placeholder:text-slate-400"
           }`}
         />
         <button
           type="submit"
           disabled={disabled || (!text.trim() && !imageFile)}
-          className="btn-hover-primary relative mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn-hover-primary relative mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 text-white shadow-md shadow-blue-600/35 disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Enviar mensaje"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -96,7 +96,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
           </svg>
         </button>
       </div>
-      <p className={`theme-animate mt-2 text-center text-[10px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+      <p className={`theme-animate mt-2 text-center text-[10px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400"}`}>
         Enter para enviar · Shift+Enter para nueva línea
       </p>
     </form>

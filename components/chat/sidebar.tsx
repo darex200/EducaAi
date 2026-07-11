@@ -60,9 +60,9 @@ function ToolButton({
         isDarkMode ? "btn-hover-lift-dark" : "btn-hover-lift-light"
       } ${
         active
-          ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25"
+          ? "bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30"
           : isDarkMode
-            ? "border border-white/[0.08] bg-slate-800/45 text-slate-200 hover:border-indigo-400/25 hover:bg-slate-800/75"
+            ? "dark-btn-surface"
             : "border border-slate-200/80 bg-white/70 text-slate-700 hover:border-blue-200 hover:bg-white"
       }`}
     >
@@ -88,7 +88,7 @@ function FooterButton({
         isDarkMode ? "btn-hover-lift-dark" : "btn-hover-lift-light"
       } ${
         isDarkMode
-          ? "border-white/[0.08] bg-slate-800/70 text-slate-200 hover:border-indigo-400/20 hover:bg-slate-800"
+          ? "dark-btn-surface"
           : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50/60"
       }`}
     >
@@ -118,7 +118,7 @@ export function Sidebar({
   onDeleteConversation,
   onLogout,
 }: SidebarProps) {
-  const sectionLabel = isDarkMode ? "text-slate-500" : "text-slate-400";
+  const sectionLabel = isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400";
   const sidebarScrollRef = useRef<HTMLDivElement>(null);
   const topicCardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -168,12 +168,12 @@ export function Sidebar({
           : "glass-panel border-white/60 bg-white/90 text-slate-800 shadow-[0_8px_32px_rgba(15,23,42,0.06)]"
       }`}
     >
-      <div className={`theme-animate shrink-0 border-b px-4 py-4 ${isDarkMode ? "border-white/[0.06]" : "border-slate-100"}`}>
+      <div className={`theme-animate shrink-0 border-b px-4 py-4 ${isDarkMode ? "border-[var(--dark-border)]" : "border-slate-100"}`}>
         <div className="flex items-center gap-3">
           <BrandLogo className="h-10 w-10 drop-shadow-[0_8px_14px_rgba(37,99,235,0.25)]" />
           <div>
             <p className="text-base font-semibold tracking-tight">Educa AI</p>
-            <p className={`text-[11px] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>Tutor académico guiado</p>
+            <p className={`text-[11px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>Tutor académico guiado</p>
           </div>
         </div>
       </div>
@@ -183,7 +183,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onNewChat}
-            className="btn-hover-primary relative mb-5 w-full overflow-hidden rounded-xl bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(37,99,235,0.35)]"
+            className="btn-hover-primary relative mb-5 w-full overflow-hidden rounded-xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_18px_rgba(37,99,235,0.38)]"
           >
             + Nueva conversación
           </button>
@@ -222,10 +222,10 @@ export function Sidebar({
                       className={`group flex items-center gap-1 rounded-xl border px-2 py-1.5 transition ${
                         isActive
                           ? isDarkMode
-                            ? "border-indigo-400/35 bg-indigo-950/35"
+                            ? "dark-btn-active"
                             : "border-blue-300 bg-blue-50"
                           : isDarkMode
-                            ? "border-transparent hover:border-white/[0.08] hover:bg-slate-800/50"
+                            ? "border-transparent hover:border-[var(--dark-border-strong)] hover:bg-[rgba(18,32,60,0.55)]"
                             : "border-transparent hover:border-slate-200 hover:bg-white"
                       }`}
                     >
@@ -237,13 +237,13 @@ export function Sidebar({
                       >
                         <p
                           className={`truncate text-xs font-medium ${
-                            isDarkMode ? "text-slate-200" : "text-slate-700"
+                            isDarkMode ? "text-[var(--dark-text-soft)]" : "text-slate-700"
                           }`}
                         >
                           {conversation.title}
                         </p>
                         {conversation.topic && (
-                          <p className={`truncate text-[10px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+                          <p className={`truncate text-[10px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400"}`}>
                             {conversation.topic}
                           </p>
                         )}
@@ -272,9 +272,9 @@ export function Sidebar({
             <select
               value={selectedTopicId}
               onChange={(e) => handleSelectFromDropdown(e.target.value)}
-              className={`btn-hover-lift theme-animate mb-3 w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+              className={`btn-hover-lift theme-animate mb-3 w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 ${
                 isDarkMode
-                  ? "btn-hover-lift-dark border-white/[0.1] bg-slate-800/60 text-slate-100"
+                  ? "btn-hover-lift-dark dark-btn-surface"
                   : "btn-hover-lift-light border-slate-200 bg-white text-slate-700"
               }`}
             >
@@ -305,13 +305,13 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className={`theme-animate shrink-0 space-y-1.5 border-t px-3 py-3 ${isDarkMode ? "border-white/[0.06]" : "border-slate-100"}`}>
+      <div className={`theme-animate shrink-0 space-y-1.5 border-t px-3 py-3 ${isDarkMode ? "border-[var(--dark-border)]" : "border-slate-100"}`}>
         <div className="grid grid-cols-2 gap-1.5">
           <Link
             href="/dashboard/progress"
             className={`btn-hover-lift theme-animate rounded-xl border px-3 py-2 text-center text-xs font-medium ${
               isDarkMode
-                ? "btn-hover-lift-dark border-white/[0.08] bg-slate-800/55 text-slate-200 hover:border-indigo-400/25"
+                ? "btn-hover-lift-dark dark-btn-surface"
                 : "btn-hover-lift-light border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50/60"
             }`}
           >
@@ -321,7 +321,7 @@ export function Sidebar({
             href="/dashboard/plan"
             className={`btn-hover-lift theme-animate rounded-xl border px-3 py-2 text-center text-xs font-medium ${
               isDarkMode
-                ? "btn-hover-lift-dark border-white/[0.08] bg-slate-800/55 text-slate-200 hover:border-indigo-400/25"
+                ? "btn-hover-lift-dark dark-btn-surface"
                 : "btn-hover-lift-light border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50/60"
             }`}
           >
@@ -335,7 +335,7 @@ export function Sidebar({
           {isDarkMode ? "Modo claro" : "Modo oscuro"}
         </FooterButton>
         <div className="flex items-center gap-2 pt-1">
-          <p className={`min-w-0 flex-1 truncate px-1 text-[11px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+          <p className={`min-w-0 flex-1 truncate px-1 text-[11px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400"}`}>
             {userName ? `Sesión: ${userName}` : "Sin sesión"}
           </p>
           <button
@@ -343,7 +343,7 @@ export function Sidebar({
             onClick={onLogout}
             className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium transition ${
               isDarkMode
-                ? "text-slate-400 hover:bg-red-500/15 hover:text-red-400"
+                ? "text-[var(--dark-text-muted)] hover:bg-red-500/12 hover:text-red-400"
                 : "text-slate-500 hover:bg-red-50 hover:text-red-600"
             }`}
           >

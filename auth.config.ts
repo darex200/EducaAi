@@ -13,6 +13,7 @@ function isPublicPath(pathname: string) {
  * El proveedor de credenciales se añade en `auth.ts`.
  */
 export const authConfig = {
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
@@ -21,8 +22,8 @@ export const authConfig = {
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      // Modo demo: sin base de datos configurada no se exige sesión.
-      if (!process.env.DATABASE_URL) return true;
+      // Modo demo: sin base de datos activada no se exige sesión.
+      if (process.env.ENABLE_DATABASE !== "true" || !process.env.DATABASE_URL) return true;
 
       const isLoggedIn = Boolean(auth?.user);
       const pathname = nextUrl.pathname;

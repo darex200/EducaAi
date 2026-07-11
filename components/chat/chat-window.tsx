@@ -46,14 +46,12 @@ export function ChatWindow({
     <section className={`flex h-full flex-col overflow-hidden rounded-2xl border ${shell}`}>
       <header
         className={`theme-animate shrink-0 border-b px-5 py-3.5 ${
-          isDarkMode
-            ? "border-white/[0.06] bg-slate-900/50"
-            : "border-slate-100/80 bg-white/50"
+          isDarkMode ? "dark-header" : "border-slate-100/80 bg-white/50"
         }`}
       >
         <p className="text-sm font-semibold tracking-tight">Asistente de aprendizaje guiado</p>
-        <p className={`theme-animate mt-0.5 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-          <span className={isDarkMode ? "text-slate-300" : "text-slate-600"}>{topicLabel}</span>
+        <p className={`theme-animate mt-0.5 text-xs ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
+          <span className={isDarkMode ? "text-[var(--dark-text-soft)]" : "text-slate-600"}>{topicLabel}</span>
           <span className="mx-1.5 opacity-40">·</span>
           {levelLabel}
           <span className="mx-1.5 opacity-40">·</span>
@@ -62,12 +60,12 @@ export function ChatWindow({
       </header>
 
       {showTopicSelector && (
-        <div className={`theme-animate shrink-0 border-b px-4 py-3 ${isDarkMode ? "border-white/[0.06] bg-slate-900/60" : "border-slate-100 bg-blue-50/30"}`}>
+        <div className={`theme-animate shrink-0 border-b px-4 py-3 ${isDarkMode ? "dark-panel" : "border-slate-100 bg-blue-50/30"}`}>
           {topicSelector}
         </div>
       )}
       {toolsPanel && (
-        <div className={`chat-scroll theme-animate shrink-0 max-h-[40vh] overflow-y-auto border-b px-4 py-3 ${isDarkMode ? "border-white/[0.06] bg-slate-900/40" : "border-slate-100 bg-slate-50/50"}`}>
+        <div className={`chat-scroll theme-animate shrink-0 max-h-[40vh] overflow-y-auto border-b px-4 py-3 ${isDarkMode ? "dark-panel" : "border-slate-100 bg-slate-50/50"}`}>
           {toolsPanel}
         </div>
       )}
@@ -81,9 +79,7 @@ export function ChatWindow({
       >
         {messages.length === 0 && emptyState && (
           <div className={`theme-animate animate-fade-up rounded-2xl border border-dashed px-4 py-8 text-center ${
-            isDarkMode
-              ? "border-indigo-400/15 bg-indigo-950/20 text-slate-400"
-              : "border-slate-200 bg-white/60 text-slate-500"
+            isDarkMode ? "dark-empty-state" : "border-slate-200 bg-white/60 text-slate-500"
           }`}>
             <p className="text-sm">{emptyState}</p>
           </div>
@@ -94,13 +90,13 @@ export function ChatWindow({
           </div>
         ))}
         {isSending && (
-          <div className={`theme-animate flex items-center gap-3 rounded-2xl px-4 py-3 ${isDarkMode ? "bg-slate-800/50" : "bg-white/80"}`}>
+          <div className={`theme-animate flex items-center gap-3 rounded-2xl px-4 py-3 ${isDarkMode ? "dark-typing" : "bg-white/80"}`}>
             <div className="flex items-center gap-1">
-              <span className={`h-2 w-2 animate-bounce rounded-full [animation-delay:-0.2s] ${isDarkMode ? "bg-indigo-400" : "bg-blue-500"}`} />
-              <span className={`h-2 w-2 animate-bounce rounded-full [animation-delay:-0.1s] ${isDarkMode ? "bg-indigo-400" : "bg-blue-500"}`} />
-              <span className={`h-2 w-2 animate-bounce rounded-full ${isDarkMode ? "bg-indigo-400" : "bg-blue-500"}`} />
+              <span className={`h-2 w-2 animate-bounce rounded-full [animation-delay:-0.2s] ${isDarkMode ? "bg-blue-400" : "bg-blue-500"}`} />
+              <span className={`h-2 w-2 animate-bounce rounded-full [animation-delay:-0.1s] ${isDarkMode ? "bg-blue-400" : "bg-blue-500"}`} />
+              <span className={`h-2 w-2 animate-bounce rounded-full ${isDarkMode ? "bg-blue-400" : "bg-blue-500"}`} />
             </div>
-            <span className={`text-xs font-medium ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+            <span className={`text-xs font-medium ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
               El tutor está escribiendo…
             </span>
           </div>

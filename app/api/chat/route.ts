@@ -9,6 +9,12 @@ import {
 } from "@/lib/ai/tutor-engine";
 import { runDiagnostics } from "@/lib/ai/diagnostics";
 import {
+  buildEducationalImagePrompt,
+  generateEducationalImage,
+  imageGenerationUnavailableMessage,
+  wantsImageGeneration,
+} from "@/lib/ai/images";
+import {
   chatCompletion,
   hasOpenAIKey,
   type OpenAIChatMessage,
@@ -18,6 +24,7 @@ type ChatRequestBody = {
   messages?: TutorMessage[];
   context?: TutorStudentContext;
   conversationId?: string;
+  generateImage?: boolean;
 };
 
 function mapToOpenAIMessages(messages: TutorMessage[]): OpenAIChatMessage[] {
@@ -163,10 +170,36 @@ export async function POST(request: Request) {
         };
 
     let reply: string | null = null;
+    let generatedImageUrl: string | null = null;
     let mode = "guided";
     let note: string | undefined;
 
-    if (hasOpenAIKey()) {
+    const shouldGenerateImage =
+      Boolean(lastUserMessage?.content) &&
+      !hasImage &&
+      (body.generateImage === true || wantsImageGeneration(lastUserMessage!.content));
+
+    if (shouldGenerateImage && hasOpenAIKey()) {
+      const imagePrompt = buildEducationalImagePrompt(lastUserMessage!.content, topic);
+      const imageResult = await generateEducationalImage(imagePrompt);
+
+      if (imageResult?.url) {
+        generatedImageUrl = imageResult.url;
+        reply = topic
+          ? `Aquí tienes una ilustración educativa sobre **${topic}**. ¿Qué parte te gustaría que te explique paso a paso?`
+          : "Aquí tienes la ilustración educativa que pediste. ¿Qué parte te gustaría que te explique paso a paso?";
+        mode = "openai-image";
+      } else {
+        reply = imageGenerationUnavailableMessage();
+        mode = "openai-image-error";
+      }
+    } else if (shouldGenerateImage && !hasOpenAIKey()) {
+      reply =
+        "Para generar ilustraciones educativas configura `OPENAI_API_KEY` en el servidor. Luego escribe, por ejemplo: **Genera un diagrama de la célula**.";
+      mode = "image-unconfigured";
+    }
+
+    if (!reply && hasOpenAIKey()) {
       const modelReply = await chatCompletion(
         [
           { role: "system", content: buildAdaptiveSystemPrompt(adaptiveContext) },
@@ -181,7 +214,7 @@ export async function POST(request: Request) {
         note = "La solicitud a OpenAI falló; se usó el modo guiado local.";
         mode = "guided-fallback";
       }
-    } else {
+    } else if (!reply && !hasOpenAIKey()) {
       note = "Define OPENAI_API_KEY para habilitar respuestas IA en vivo con texto e imagen.";
     }
 
@@ -198,6 +231,7 @@ export async function POST(request: Request) {
           conversationId: finalConversationId,
           role: "assistant",
           content: finalReply,
+          imageUrl: generatedImageUrl,
         },
       });
       await prisma.conversation.update({
@@ -219,6 +253,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       reply,
+      generatedImageUrl,
       conversationId,
       meta: { mode, ...(note ? { note } : {}), persisted: Boolean(conversationId) },
     });

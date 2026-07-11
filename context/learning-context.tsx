@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "@/context/auth-context";
+import { isClientDatabaseEnabled } from "@/lib/demo-mode";
 
 export type StudentProfile = {
   subjects: string[];
@@ -61,10 +62,9 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   );
   const syncedUserRef = useRef<string | null>(null);
 
-  // Al iniciar sesión: carga el perfil desde la BD y, si la BD está vacía
-  // pero localStorage tiene datos, migra el perfil local al servidor.
+  // Con base de datos: carga el perfil desde el servidor y migra localStorage si hace falta.
   useEffect(() => {
-    if (!user?.id || syncedUserRef.current === user.id) return;
+    if (!isClientDatabaseEnabled() || !user?.id || syncedUserRef.current === user.id) return;
     syncedUserRef.current = user.id;
 
     void (async () => {
@@ -105,21 +105,25 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       return merged;
     });
-    void fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
-    }).catch(() => null);
+    if (isClientDatabaseEnabled()) {
+      void fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      }).catch(() => null);
+    }
   };
 
   const clearProfile = () => {
     localStorage.removeItem(STORAGE_KEY);
     setProfileState(defaultProfile);
-    void fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(defaultProfile),
-    }).catch(() => null);
+    if (isClientDatabaseEnabled()) {
+      void fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(defaultProfile),
+      }).catch(() => null);
+    }
   };
 
   const value = useMemo(() => ({ profile, setProfile, clearProfile }), [profile]);

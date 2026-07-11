@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
+import { isDatabaseEnabled } from "@/lib/demo-mode";
 
-/** Sin DATABASE_URL la app corre en modo demo (sin persistencia ni cuentas). */
+/** Sin base de datos activada la app corre en modo demo (localStorage, sin cuentas). */
 export function isDbConfigured() {
-  return Boolean(process.env.DATABASE_URL);
+  return isDatabaseEnabled();
 }
 
 /** Id del usuario autenticado, o null (sin sesión o modo demo). */

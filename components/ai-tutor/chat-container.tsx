@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/chat/app-layout";
 import { Sidebar, type ConversationSummary } from "@/components/chat/sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
@@ -13,6 +12,7 @@ import { TopicSelector } from "@/components/onboarding/topic-selector";
 import { useAuth } from "@/context/auth-context";
 import { useLearning } from "@/context/learning-context";
 import type { TutorMessage } from "@/components/ai-tutor/types";
+import { wantsImageGeneration } from "@/lib/ai/images";
 import { lessons } from "@/lib/lessons";
 
 const ACTIVE_CONVERSATION_KEY = "educa-ai-active-conversation";
@@ -63,11 +63,9 @@ function toDataUrl(file: File) {
 }
 
 export function ChatContainer() {
-  const router = useRouter();
   const { user, logout } = useAuth();
   const { profile } = useLearning();
   const [messages, setMessages] = useState<TutorMessage[]>([]);
-  const [isNewChat, setIsNewChat] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -164,12 +162,12 @@ export function ChatContainer() {
           id: message.id,
           role: message.role,
           content: message.content,
-          imageDataUrl: message.imageUrl ?? undefined,
+          imageDataUrl: message.role === "user" ? message.imageUrl ?? undefined : undefined,
+          generatedImageUrl: message.role === "assistant" ? message.imageUrl ?? undefined : undefined,
         }))
         .filter((message) => !isLegacyWelcomeMessage(message));
       setMessages(loaded);
       setConversationId(id);
-      setIsNewChat(false);
       setError(null);
       return true;
     } catch {
@@ -183,10 +181,13 @@ export function ChatContainer() {
     localStorage.removeItem("educa-ai-chat-state");
   }, []);
 
-  // Al entrar con sesión: solo carga el historial, sin restaurar conversación automáticamente.
+  // Al entrar con sesión: carga el historial de conversaciones.
   useEffect(() => {
     if (!user?.id) return;
-    void refreshConversations();
+    const timer = window.setTimeout(() => {
+      void refreshConversations();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [user?.id, refreshConversations]);
 
   const scrollChatToBottom = (behavior: ScrollBehavior = "smooth") => {
@@ -204,7 +205,6 @@ export function ChatContainer() {
   const clearChat = useCallback(() => {
     setMessages([]);
     setConversationId(null);
-    setIsNewChat(false);
     setError(null);
     setContent(null);
     setShowGuidedPractice(false);
@@ -262,6 +262,7 @@ export function ChatContainer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId,
+          generateImage: wantsImageGeneration(text),
           messages: nextMessages.map((message) => ({
             role: message.role,
             content: message.content,
@@ -281,6 +282,7 @@ export function ChatContainer() {
 
       const data = (await response.json()) as {
         reply?: string;
+        generatedImageUrl?: string | null;
         conversationId?: string | null;
       };
       const assistantMessage: TutorMessage = {
@@ -289,11 +291,11 @@ export function ChatContainer() {
         content:
           data.reply ??
           "No pude responder en este intento. Reenvia tu pregunta y lo resolvemos paso a paso.",
+        generatedImageUrl: data.generatedImageUrl ?? undefined,
       };
       setMessages((current) => [...current, assistantMessage]);
       if (data.conversationId && data.conversationId !== conversationId) {
         setConversationId(data.conversationId);
-        setIsNewChat(false);
       }
       if (data.conversationId) {
         void refreshConversations();
@@ -306,13 +308,8 @@ export function ChatContainer() {
   };
 
   const handleNewChat = () => {
-    if (!hasExplicitTopic) {
-      setError("Selecciona un tema en la barra lateral antes de crear una conversación.");
-      return;
-    }
     setMessages([]);
     setConversationId(null);
-    setIsNewChat(true);
     setError(null);
     setContent(null);
     setShowGuidedPractice(false);
@@ -446,11 +443,9 @@ export function ChatContainer() {
           isSending={isSending || isAnalyzingDocument}
           isDarkMode={isDarkMode}
           emptyState={
-            isNewChat
-              ? hasExplicitTopic
-                ? `Nueva conversación sobre ${activeTopicTitle}. Escribe tu primera pregunta para comenzar.`
-                : "Selecciona un tema en la barra lateral para comenzar."
-              : "No se ha seleccionado una conversación. Elige una del historial o crea una nueva."
+            hasExplicitTopic
+              ? `Pregunta lo que quieras sobre ${activeTopicTitle}.`
+              : "Escribe tu pregunta para comenzar."
           }
           topicLabel={hasExplicitTopic ? activeTopicTitle : "No seleccionado"}
           levelLabel={profile.level || "No definido"}
@@ -478,7 +473,7 @@ export function ChatContainer() {
           input={
             <ChatInput
               onSend={handleSend}
-              disabled={isSending || isAnalyzingDocument || (!conversationId && !isNewChat) || (isNewChat && !hasExplicitTopic)}
+              disabled={isSending || isAnalyzingDocument}
               isDarkMode={isDarkMode}
             />
           }

@@ -21,11 +21,11 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
     : "theme-animate bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 text-white shadow-[0_4px_16px_rgba(37,99,235,0.28)]";
 
   const avatarAssistant = isDarkMode
-    ? "theme-animate bg-gradient-to-br from-indigo-500 to-violet-600 text-white ring-2 ring-slate-900/80"
+    ? "theme-animate bg-gradient-to-br from-blue-600 to-indigo-600 text-white ring-2 ring-[rgba(8,14,28,0.9)] shadow-[0_0_12px_rgba(59,130,246,0.25)]"
     : "theme-animate bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-700 ring-2 ring-white";
 
   const avatarUser = isDarkMode
-    ? "theme-animate bg-slate-700/90 text-slate-200 ring-2 ring-slate-900/80"
+    ? "theme-animate bg-[rgba(30,58,138,0.55)] text-blue-100 ring-2 ring-[rgba(8,14,28,0.9)]"
     : "theme-animate bg-slate-200 text-slate-700 ring-2 ring-white";
 
   return (
@@ -45,10 +45,20 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
         {message.imageDataUrl && (
           <Image
             src={message.imageDataUrl}
-            alt="Imagen enviada"
-            className="mb-2 max-h-56 w-full rounded-xl object-contain ring-1 ring-white/20"
+            alt={isUser ? "Imagen enviada" : "Imagen generada"}
+            className="mb-2 max-h-80 w-full rounded-xl object-contain ring-1 ring-white/20"
             width={640}
-            height={360}
+            height={480}
+            unoptimized
+          />
+        )}
+        {!message.imageDataUrl && message.generatedImageUrl && (
+          <Image
+            src={message.generatedImageUrl}
+            alt="Ilustración educativa generada"
+            className="mb-2 max-h-80 w-full rounded-xl object-contain ring-1 ring-blue-400/20"
+            width={1024}
+            height={1024}
             unoptimized
           />
         )}

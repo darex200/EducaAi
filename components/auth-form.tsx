@@ -10,7 +10,7 @@ type AuthMode = "login" | "register";
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const isRegister = mode === "register";
   const router = useRouter();
-  const { login, register } = useAuth();
+  const { login, register, isDatabaseEnabled } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +22,9 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     setError(null);
     setIsSubmitting(true);
     try {
-      if (isRegister) {
+      if (!isDatabaseEnabled) {
+        await register(name.trim() || "Estudiante", "", "");
+      } else if (isRegister) {
         await register(name.trim() || "Estudiante", email.trim(), password);
       } else {
         await login(email.trim(), password);
@@ -36,6 +38,42 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       setIsSubmitting(false);
     }
   };
+
+  if (!isDatabaseEnabled) {
+    return (
+      <form onSubmit={handleSubmit} className="card-surface w-full max-w-md space-y-4 p-6">
+        <h1 className="text-2xl font-semibold text-indigo-800">Entra a Educa AI</h1>
+        <p className="text-sm text-slate-600">
+          Modo sin cuenta: tu perfil y progreso se guardan solo en este navegador.
+        </p>
+        <input
+          className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
+          placeholder="Tu nombre"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          required
+        />
+        {error && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="gradient-accent w-full rounded-xl px-4 py-2.5 font-medium transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isSubmitting ? (
+            <span className="inline-flex items-center justify-center">
+              <LoadingSpinner label="Entrando..." />
+            </span>
+          ) : (
+            "Empezar"
+          )}
+        </button>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="card-surface w-full max-w-md space-y-4 p-6">

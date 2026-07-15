@@ -48,6 +48,12 @@ export const authConfig = {
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
+      if (token.name && session.user) {
+        session.user.name = String(token.name);
+      }
+      if (token.email && session.user) {
+        session.user.email = String(token.email);
+      }
       return session;
     },
   },

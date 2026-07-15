@@ -77,13 +77,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider === "google" && user?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email.toLowerCase() },
-          select: { id: true },
+          select: { id: true, name: true, email: true },
         });
         if (dbUser) {
           token.sub = dbUser.id;
+          token.name = dbUser.name;
+          token.email = dbUser.email;
         }
       } else if (user?.id) {
         token.sub = user.id;
+        if (user.name) token.name = user.name;
+        if (user.email) token.email = user.email;
       }
       return token;
     },

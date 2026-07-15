@@ -22,6 +22,15 @@ export async function ensureGoogleUser(email: string, name?: string | null) {
         data: { name: name.trim() },
       });
     }
+
+    const profile = await prisma.learningProfile.findUnique({
+      where: { userId: existing.id },
+      select: { userId: true },
+    });
+    if (!profile) {
+      await prisma.learningProfile.create({ data: { userId: existing.id } });
+    }
+
     return existing;
   }
 

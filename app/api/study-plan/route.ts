@@ -9,6 +9,7 @@ const requestSchema = z.object({
   examDate: z.string().trim().optional(),
   hoursPerWeek: z.number().min(1).max(60).default(5),
   goal: z.string().trim().max(300).optional(),
+  locale: z.enum(["en", "es", "pt"]).optional(),
 });
 
 export async function GET() {
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
     }
-    const { examDate, hoursPerWeek, goal } = parsed.data;
+    const { examDate, hoursPerWeek, goal, locale } = parsed.data;
 
     const [user, profile, masteries] = await Promise.all([
       prisma.user.findUnique({
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
       weakTopics,
       pendingTopics,
       masteredTopics,
+      locale,
     });
 
     const saved = await prisma.studyPlan.create({

@@ -5,6 +5,8 @@ import { ExamDateField } from "@/components/plan/exam-date-field";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { useLanguage } from "@/context/language-context";
 import { dateLocaleTag } from "@/lib/i18n/translations";
+import { resolveTopicDisplayTitle } from "@/lib/lessons";
+import type { AppLocale } from "@/lib/i18n/translations";
 
 type StudyPlanDay = {
   day: string;
@@ -22,6 +24,7 @@ type StudyPlanWeek = {
 type GeneratedStudyPlan = {
   weeks: StudyPlanWeek[];
   tips: string[];
+  locale?: AppLocale;
 };
 
 function toInputDate(value: string | Date | null | undefined) {
@@ -76,7 +79,7 @@ export default function StudyPlanPage() {
         setIsLoading(false);
       }
     })();
-  }, [locale]);
+  }, [locale, t]);
 
   const generatePlan = async () => {
     setIsGenerating(true);
@@ -89,6 +92,7 @@ export default function StudyPlanPage() {
           examDate: examDate || undefined,
           hoursPerWeek,
           goal: goal || undefined,
+          locale,
         }),
       });
       const data = (await response.json()) as {
@@ -104,7 +108,10 @@ export default function StudyPlanPage() {
       setPlanMeta(
         data.weakTopics?.length
           ? t("planPrioritizingWeak", {
-              topics: data.weakTopics.slice(0, 3).join(", "),
+              topics: data.weakTopics
+                .slice(0, 3)
+                .map((topic) => resolveTopicDisplayTitle(topic, locale))
+                .join(", "),
             })
           : t("planFromProfile"),
       );
@@ -114,6 +121,8 @@ export default function StudyPlanPage() {
       setIsGenerating(false);
     }
   };
+
+  const needsLocaleRefresh = Boolean(plan && plan.locale && plan.locale !== locale);
 
   return (
     <div className="space-y-6">
@@ -180,6 +189,11 @@ export default function StudyPlanPage() {
         </div>
       ) : plan ? (
         <>
+          {needsLocaleRefresh ? (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {t("planRegenerateLocale")}
+            </p>
+          ) : null}
           {planMeta && <p className="text-xs text-slate-500">{planMeta}</p>}
           <div className="space-y-4">
             {plan.weeks.map((week) => (
@@ -188,7 +202,9 @@ export default function StudyPlanPage() {
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-sm font-bold text-white">
                     {week.week}
                   </span>
-                  <h2 className="text-sm font-semibold text-slate-800">{week.focus}</h2>
+                  <h2 className="text-sm font-semibold text-slate-800">
+                    {t("planWeekLabel", { week: String(week.week) })} · {week.focus}
+                  </h2>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {week.days.map((day, index) => (
@@ -199,12 +215,14 @@ export default function StudyPlanPage() {
                       <div className="mb-1.5 flex items-center justify-between">
                         <p className="text-xs font-semibold text-slate-700">{day.day}</p>
                         <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                          {day.minutes} min
+                          {t("planMinutes", { minutes: String(day.minutes) })}
                         </span>
                       </div>
                       {day.topics.length > 0 && (
                         <p className="mb-1 text-xs font-medium text-indigo-700">
-                          {day.topics.join(" · ")}
+                          {day.topics
+                            .map((topic) => resolveTopicDisplayTitle(topic, locale))
+                            .join(" · ")}
                         </p>
                       )}
                       <ul className="space-y-0.5">

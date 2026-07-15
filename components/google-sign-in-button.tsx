@@ -7,7 +7,7 @@ import { useLanguage } from "@/context/language-context";
 type GoogleSignInButtonProps = {
   label: string;
   callbackUrl?: string;
-  onError?: (message: string) => void;
+  onError?: (message: string | null) => void;
 };
 
 function GoogleIcon() {
@@ -36,9 +36,9 @@ function GoogleIcon() {
 function authErrorMessage(code: string, locale: "en" | "es" | "pt") {
   const messages: Record<string, Record<"en" | "es" | "pt", string>> = {
     Configuration: {
-      en: "Google sign-in is not configured on the server. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Vercel.",
-      es: "El inicio con Google no está configurado en el servidor. Revisa GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en Vercel.",
-      pt: "O login com Google não está configurado no servidor. Verifique GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET na Vercel.",
+      en: "Google sign-in is not configured on the server. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Vercel, then redeploy.",
+      es: "El inicio con Google no está configurado en el servidor. Agrega GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en Vercel y haz redeploy.",
+      pt: "O login com Google não está configurado no servidor. Adicione GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET na Vercel e faça redeploy.",
     },
     AccessDenied: {
       en: "Access denied. If the OAuth app is in testing mode, add your Gmail as a test user in Google Cloud.",
@@ -77,7 +77,6 @@ export function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const { locale } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
-  const [providerReady, setProviderReady] = useState<boolean | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,11 +86,13 @@ export function GoogleSignInButton({
         const response = await fetch("/api/auth/providers");
         if (!response.ok) throw new Error("providers");
         const providers = (await response.json()) as Record<string, unknown>;
-        if (!cancelled) {
-          setProviderReady(Boolean(providers.google));
+        if (!cancelled && !providers.google) {
+          onError?.(authErrorMessage("Configuration", locale));
         }
       } catch {
-        if (!cancelled) setProviderReady(false);
+        if (!cancelled) {
+          onError?.(authErrorMessage("Configuration", locale));
+        }
       }
     }
 
@@ -99,32 +100,25 @@ export function GoogleSignInButton({
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const reportError = (message: string) => {
-    onError?.(message);
-  };
+  }, [locale, onError]);
 
   const handleClick = async () => {
-    if (providerReady === false) {
-      reportError(authErrorMessage("Configuration", locale));
-      return;
-    }
-
     setIsLoading(true);
+    onError?.(null);
+
     try {
       const result = await signIn("google", { callbackUrl, redirect: false });
       if (result?.error) {
-        reportError(authErrorMessage(result.error, locale));
+        onError?.(authErrorMessage(result.error, locale));
         return;
       }
       if (result?.url) {
         window.location.href = result.url;
         return;
       }
-      reportError(authErrorMessage("Default", locale));
+      onError?.(authErrorMessage("Default", locale));
     } catch {
-      reportError(authErrorMessage("OAuthSignin", locale));
+      onError?.(authErrorMessage("OAuthSignin", locale));
     } finally {
       setIsLoading(false);
     }
@@ -134,8 +128,8 @@ export function GoogleSignInButton({
     <button
       type="button"
       onClick={handleClick}
-      disabled={isLoading || providerReady === false}
-      className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+      disabled={isLoading}
+      className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70"
     >
       <GoogleIcon />
       {isLoading ? "..." : label}

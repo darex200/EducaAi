@@ -101,6 +101,20 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
           ? "Regístrate para guardar tu historial y progreso."
           : "Inicia sesión con tu correo y contraseña."}
       </p>
+      {error && (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      {showGoogleAuth ? (
+        <>
+          <GoogleSignInButton label={t("authGoogleSignIn")} onError={setError} />
+          <div className="relative py-1 text-center text-xs text-slate-500">
+            <span className="relative z-10 bg-white px-2">{t("authOrContinueWith")}</span>
+            <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-slate-200" />
+          </div>
+        </>
+      ) : null}
       {isRegister && (
         <input
           className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
@@ -130,20 +144,6 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
         required
         autoComplete={isRegister ? "new-password" : "current-password"}
       />
-      {error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error}
-        </p>
-      )}
-      {showGoogleAuth ? (
-        <>
-          <GoogleSignInButton label={t("authGoogleSignIn")} onError={setError} />
-          <div className="relative py-1 text-center text-xs text-slate-500">
-            <span className="relative z-10 bg-white px-2">{t("authOrContinueWith")}</span>
-            <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-slate-200" />
-          </div>
-        </>
-      ) : null}
       <button
         type="submit"
         disabled={isSubmitting}

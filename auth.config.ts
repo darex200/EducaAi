@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import { isDatabaseEnabled } from "@/lib/demo-mode";
 
-const PUBLIC_PATHS = ["/landing", "/login", "/register"];
+const PUBLIC_PATHS = ["/", "/landing", "/login", "/register"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some(
@@ -31,7 +31,7 @@ export const authConfig = {
 
       if (isPublicPath(pathname)) {
         if (isLoggedIn && (pathname.startsWith("/login") || pathname.startsWith("/register"))) {
-          return Response.redirect(new URL("/", nextUrl));
+          return Response.redirect(new URL("/tutor", nextUrl));
         }
         return true;
       }

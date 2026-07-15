@@ -15,7 +15,7 @@ export default function LoginPage() {
           </Link>
           {" · "}
           También puedes ir directo al{" "}
-          <Link href="/" className="font-medium text-indigo-700">
+          <Link href="/tutor" className="font-medium text-indigo-700">
             tutor IA
           </Link>
           .

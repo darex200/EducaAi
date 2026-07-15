@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signIn } from "next-auth/react";
 import { useLanguage } from "@/context/language-context";
 
 type GoogleSignInButtonProps = {
@@ -56,9 +55,9 @@ function authErrorMessage(code: string, locale: "en" | "es" | "pt") {
       pt: "Não foi possível iniciar o login com Google. Verifique a redirect URI no Google Cloud Console.",
     },
     OAuthCallback: {
-      en: "Google callback failed. Verify AUTH_URL and the redirect URI match your Vercel domain.",
-      es: "Falló el callback de Google. Verifica que AUTH_URL y la redirect URI coincidan con tu dominio de Vercel.",
-      pt: "Falha no callback do Google. Verifique se AUTH_URL e a redirect URI correspondem ao seu domínio na Vercel.",
+      en: "Google callback failed. Verify AUTH_URL and the redirect URI match your custom domain.",
+      es: "Falló el callback de Google. Verifica que AUTH_URL y la redirect URI coincidan con tu dominio personalizado.",
+      pt: "Falha no callback do Google. Verifique se AUTH_URL e a redirect URI correspondem ao seu domínio personalizado.",
     },
     Default: {
       en: "Google sign-in failed. Try again or use email and password.",
@@ -102,26 +101,12 @@ export function GoogleSignInButton({
     };
   }, [locale, onError]);
 
-  const handleClick = async () => {
+  const handleClick = () => {
     setIsLoading(true);
     onError?.(null);
-
-    try {
-      const result = await signIn("google", { callbackUrl, redirect: false });
-      if (result?.error) {
-        onError?.(authErrorMessage(result.error, locale));
-        return;
-      }
-      if (result?.url) {
-        window.location.assign(result.url);
-        return;
-      }
-      window.location.assign(`/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-    } catch {
-      onError?.(authErrorMessage("OAuthSignin", locale));
-    } finally {
-      setIsLoading(false);
-    }
+    window.location.assign(
+      `/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+    );
   };
 
   return (

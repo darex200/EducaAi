@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import { isDatabaseEnabled } from "@/lib/demo-mode";
 
-const PUBLIC_PATHS = ["/", "/landing", "/login", "/register"];
+const PUBLIC_PATHS = ["/", "/landing", "/login", "/register", "/tutor"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some(

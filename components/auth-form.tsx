@@ -161,6 +161,14 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
           "Iniciar sesión"
         )}
       </button>
+      {!isRegister ? (
+        <Link
+          href="/tutor"
+          className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+        >
+          {t("authContinueWithoutSignIn")}
+        </Link>
+      ) : null}
       <p className="text-center text-sm text-slate-600">
         {isRegister ? (
           <>

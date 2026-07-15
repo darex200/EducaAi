@@ -31,7 +31,45 @@ export type AdaptiveContext = {
   topic?: string;
   hasImage?: boolean;
   locale?: AppLocale;
+  longFormRequest?: boolean;
 };
+
+function normalizeRequestText(text: string) {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Detecta pedidos de resumen, ensayo o texto con extensión explícita (ej. 1000 palabras). */
+export function isLongFormContentRequest(text: string) {
+  const normalized = normalizeRequestText(text);
+
+  const wordCountMatch = normalized.match(/\b(\d{2,4})\s*(palabras?|words?)\b/);
+  if (wordCountMatch && Number(wordCountMatch[1]) >= 200) {
+    return true;
+  }
+
+  if (
+    /\b(resumen|summary|resumo|ensayo|essay|monografia|informe|reporte|report|sintese|síntese)\b/.test(
+      normalized,
+    )
+  ) {
+    if (
+      /\b(largo|extenso|completo|detallado|detailed|full|long|amplio|profundo|aprofundado)\b/.test(
+        normalized,
+      )
+    ) {
+      return true;
+    }
+
+    if (/\b\d{3,4}\b/.test(normalized)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 function estimateAge(birthYear?: number | null) {
   if (!birthYear) return null;
@@ -135,6 +173,14 @@ function promptBundle(locale: AppLocale) {
         "- Usa lista numerada corta cuando haya procedimiento.",
         "- Sin introducciones largas ni relleno. Cierra con UNA pregunta al estudiante.",
       ],
+      longFormTitle: "Formato extenso (cuando lo pida):",
+      longFormRules: [
+        "- El estudiante pidió un resumen, ensayo o texto largo: NO te limites a 3-8 líneas.",
+        "- Si indicó un número de palabras (ej. 1000), acércate a esa extensión con secciones claras.",
+        "- Estructura con introducción, desarrollo por subtemas y cierre breve.",
+        "- Prioriza claridad, cobertura y rigor académico sobre brevedad.",
+        "- Puedes cerrar con una sola pregunta breve o omitirla si el texto ya es muy largo.",
+      ],
       mathTitle: "Formato matemático (crítico):",
       mathRules: [
         "- Escribe toda fórmula en LaTeX: inline con $...$ y bloque con $$...$$.",
@@ -191,6 +237,14 @@ function promptBundle(locale: AppLocale) {
         "- Use lista numerada curta quando houver procedimento.",
         "- Sem introduções longas nem preenchimento. Feche com UMA pergunta ao estudante.",
       ],
+      longFormTitle: "Formato extenso (quando pedir):",
+      longFormRules: [
+        "- O estudante pediu um resumo, ensaio ou texto longo: NÃO se limite a 3-8 linhas.",
+        "- Se indicou um número de palavras (ex.: 1000), aproxime-se dessa extensão com seções claras.",
+        "- Estruture com introdução, desenvolvimento por subtópicos e fechamento breve.",
+        "- Priorize clareza, cobertura e rigor acadêmico em vez de brevidade.",
+        "- Pode fechar com uma pergunta breve ou omiti-la se o texto já for muito longo.",
+      ],
       mathTitle: "Formato matemático (crítico):",
       mathRules: [
         "- Escreva toda fórmula em LaTeX: inline com $...$ e bloco com $$...$$.",
@@ -246,6 +300,14 @@ function promptBundle(locale: AppLocale) {
       "- Use a short numbered list when there is a procedure.",
       "- No long introductions or filler. End with ONE question for the student.",
     ],
+    longFormTitle: "Extended format (when requested):",
+    longFormRules: [
+      "- The student asked for a summary, essay, or long text: do NOT limit yourself to 3-8 lines.",
+      "- If they specified a word count (e.g. 1000), aim for that length with clear sections.",
+      "- Structure with introduction, development by subtopic, and a brief closing.",
+      "- Prioritize clarity, coverage, and academic rigor over brevity.",
+      "- You may end with one brief question or omit it if the text is already long.",
+    ],
     mathTitle: "Math formatting (critical):",
     mathRules: [
       "- Write every formula in LaTeX: inline with $...$ and block with $$...$$.",
@@ -288,7 +350,8 @@ function promptBundle(locale: AppLocale) {
  * Sustituye a buildTutorSystemPrompt de lib/tutor.ts cuando hay datos del estudiante.
  */
 export function buildAdaptiveSystemPrompt(context: AdaptiveContext = {}) {
-  const { student, profile, mastery, topic, locale = DEFAULT_LOCALE } = context;
+  const { student, profile, mastery, topic, locale = DEFAULT_LOCALE, longFormRequest = false } =
+    context;
   const age = estimateAge(student?.birthYear);
   const bundle = promptBundle(locale);
 
@@ -314,8 +377,9 @@ export function buildAdaptiveSystemPrompt(context: AdaptiveContext = {}) {
     ...(strengths.length ? [bundle.strengths(strengths.join(", "))] : []),
     ...(commonErrors.length ? [bundle.commonErrors(commonErrors.join(" | "))] : []),
     "",
-    bundle.formatTitle,
-    ...bundle.formatRules,
+    ...(longFormRequest
+      ? [bundle.longFormTitle, ...bundle.longFormRules]
+      : [bundle.formatTitle, ...bundle.formatRules]),
     "",
     bundle.mathTitle,
     ...bundle.mathRules,

@@ -5,6 +5,7 @@ import { getAuthUserId, isDbConfigured } from "@/lib/api-auth";
 import { buildGuidedReply, type TutorMessage, type TutorStudentContext } from "@/lib/tutor";
 import {
   buildAdaptiveSystemPrompt,
+  isLongFormContentRequest,
   type AdaptiveContext,
 } from "@/lib/ai/tutor-engine";
 import { runDiagnostics } from "@/lib/ai/diagnostics";
@@ -150,6 +151,9 @@ export async function POST(request: Request) {
     const lastUserMessage = [...latestMessages]
       .reverse()
       .find((message) => message.role === "user");
+    const longFormRequest = Boolean(
+      lastUserMessage?.content && isLongFormContentRequest(lastUserMessage.content),
+    );
     const hasImage = latestMessages.some((message) => Boolean(message.imageDataUrl));
     const topic = (context?.topic ?? "").trim();
 
@@ -183,7 +187,11 @@ export async function POST(request: Request) {
     let adaptiveContext: AdaptiveContext;
     if (userId) {
       try {
-        adaptiveContext = { ...(await loadAdaptiveContext(userId, topic, hasImage)), locale };
+        adaptiveContext = {
+          ...(await loadAdaptiveContext(userId, topic, hasImage)),
+          locale,
+          longFormRequest,
+        };
       } catch (profileError) {
         console.error("[chat] no se pudo cargar perfil adaptativo:", profileError);
         adaptiveContext = {
@@ -193,6 +201,7 @@ export async function POST(request: Request) {
           topic,
           hasImage,
           locale,
+          longFormRequest,
         };
       }
     } else {
@@ -203,6 +212,7 @@ export async function POST(request: Request) {
         topic,
         hasImage,
         locale,
+        longFormRequest,
       };
     }
 
@@ -241,7 +251,7 @@ export async function POST(request: Request) {
           { role: "system", content: buildAdaptiveSystemPrompt(adaptiveContext) },
           ...mapToOpenAIMessages(latestMessages, locale),
         ],
-        { temperature: 0.35 },
+        { temperature: 0.35, maxTokens: longFormRequest ? 2800 : 900 },
       );
       if (modelReply) {
         reply = normalizeMathFormatting(modelReply);

@@ -18,11 +18,6 @@ export default function LoginPage() {
           <Link href="/register" className="font-medium text-indigo-700">
             Crear cuenta
           </Link>
-          {" · "}
-          También puedes ir directo al{" "}
-          <Link href="/tutor" className="font-medium text-indigo-700">
-            tutor IA
-          </Link>
           .
         </p>
       </main>

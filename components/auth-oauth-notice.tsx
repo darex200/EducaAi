@@ -26,9 +26,9 @@ function authErrorMessage(code: string, locale: "en" | "es" | "pt") {
       pt: "Não foi possível iniciar o login com Google. Verifique a redirect URI no Google Cloud Console.",
     },
     OAuthCallback: {
-      en: "Google callback failed. Verify AUTH_URL and the redirect URI match your Vercel domain.",
-      es: "Falló el callback de Google. Verifica que AUTH_URL y la redirect URI coincidan con tu dominio de Vercel.",
-      pt: "Falha no callback do Google. Verifique se AUTH_URL e a redirect URI correspondem ao seu domínio na Vercel.",
+      en: "Google callback failed. Verify AUTH_URL and the redirect URI match https://www.educa-ai.net.",
+      es: "Falló el callback de Google. Verifica que AUTH_URL y la redirect URI coincidan con https://www.educa-ai.net.",
+      pt: "Falha no callback do Google. Verifique se AUTH_URL e a redirect URI correspondem a https://www.educa-ai.net.",
     },
     Default: {
       en: "Google sign-in failed. Try again or use email and password.",

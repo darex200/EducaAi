@@ -277,13 +277,8 @@ export function LandingPage() {
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Contacto</p>
             <ul className="space-y-2 text-sm text-slate-600">
               <li>
-                <a href="mailto:contacto@educaai.app" className="hover:text-blue-700">
-                  contacto@educaai.app
-                </a>
-              </li>
-              <li>
-                <a href="mailto:soporte@educaai.app" className="hover:text-blue-700">
-                  soporte@educaai.app
+                <a href="mailto:blbconomy@gmail.com" className="hover:text-blue-700">
+                  blbconomy@gmail.com
                 </a>
               </li>
             </ul>
@@ -315,7 +310,7 @@ export function LandingPage() {
                 </svg>
               </a>
               <a
-                href="https://instagram.com"
+                href="https://instagram.com/educa.ai.ed"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"

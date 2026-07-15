@@ -7,11 +7,13 @@ import type {
   QuizQuestionType,
   SchoolLevel,
 } from "@/lib/quiz";
+import type { AppLocale } from "@/lib/i18n/translations";
 
 type QuizModalProps = {
   topic: string;
   isOpen: boolean;
   onClose: () => void;
+  locale?: AppLocale;
 };
 
 type GradedAnswer = {
@@ -37,12 +39,20 @@ type SubmitResponse = {
   error?: string;
 };
 
-export function QuizModal({ topic, isOpen, onClose }: QuizModalProps) {
+export function QuizModal({ topic, isOpen, onClose, locale = "en" }: QuizModalProps) {
   if (!isOpen) return null;
-  return <QuizModalContent key={topic} topic={topic} onClose={onClose} />;
+  return <QuizModalContent key={`${topic}-${locale}`} topic={topic} onClose={onClose} locale={locale} />;
 }
 
-function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => void }) {
+function QuizModalContent({
+  topic,
+  onClose,
+  locale,
+}: {
+  topic: string;
+  onClose: () => void;
+  locale: AppLocale;
+}) {
   const [schoolLevel, setSchoolLevel] = useState<SchoolLevel>("secundaria");
   const [difficulty, setDifficulty] = useState<QuizDifficulty | "auto">("auto");
   const [questionType, setQuestionType] = useState<QuizQuestionType>("mixto");
@@ -73,7 +83,7 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
       const res = await fetch("/api/topic-tools", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "subtopics", topic, level: schoolLevel }),
+        body: JSON.stringify({ mode: "subtopics", topic, level: schoolLevel, locale }),
       });
       const data = (await res.json()) as { subtopics?: string[]; error?: string; note?: string };
       if (!res.ok) throw new Error(data.error ?? "No se pudieron cargar subtemas.");
@@ -86,7 +96,7 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
     } finally {
       setIsLoadingSubtopics(false);
     }
-  }, [topic, schoolLevel]);
+  }, [topic, schoolLevel, locale]);
 
   const generateQuiz = async () => {
     setQuiz([]);
@@ -114,6 +124,7 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
             .split(",")
             .map((item) => item.trim())
             .filter(Boolean),
+          locale,
         }),
       });
 
@@ -148,6 +159,7 @@ function QuizModalContent({ topic, onClose }: { topic: string; onClose: () => vo
           questions: quiz,
           answers,
           topic,
+          locale,
         }),
       });
       const data = (await res.json()) as SubmitResponse;

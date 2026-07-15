@@ -8,6 +8,14 @@ import {
   type QuizQuestionType,
   type SchoolLevel,
 } from "@/lib/quiz";
+import type { AppLocale } from "@/lib/i18n/translations";
+import {
+  aiJsonSystemPrompt,
+  aiLanguageLabel,
+  fallbackSubtopics,
+  fallbackTopicContent,
+  normalizeAppLocale,
+} from "@/lib/i18n/locale-ai";
 
 type Mode = "subtopics" | "quiz" | "content";
 
@@ -19,51 +27,41 @@ type TopicToolsBody = {
   questionType?: QuizQuestionType;
   questionCount?: number;
   subtopics?: string[];
+  locale?: string;
 };
 
-function fallbackSubtopics(topic: string) {
-  return [`Introducción a ${topic}`, `Conceptos clave de ${topic}`, `Aplicaciones de ${topic}`];
-}
-
-function fallbackContent(topic: string) {
-  return {
-    title: topic,
-    summary: `${topic} es un tema clave para desarrollar comprensión conceptual y capacidad de análisis.`,
-    examples: [
-      `Ejemplo 1: aplicación básica de ${topic}.`,
-      `Ejemplo 2: caso práctico intermedio de ${topic}.`,
-    ],
-    references: [
-      "Artículo recomendado: fundamentos del tema.",
-      "Referencia académica: revisión conceptual estructurada.",
-    ],
-  };
-}
-
-function buildQuizPrompt(body: TopicToolsBody, topic: string, level: string, difficulty: QuizDifficulty) {
+function buildQuizPrompt(
+  body: TopicToolsBody,
+  topic: string,
+  level: string,
+  difficulty: QuizDifficulty,
+  locale: AppLocale,
+) {
   const count = clampQuestionCount(body.questionCount);
   const questionType = body.questionType ?? "mixto";
   const subtopics =
-    body.subtopics?.length ? body.subtopics.join(", ") : "sin subtemas específicos";
+    body.subtopics?.length ? body.subtopics.join(", ") : "no specific subtopics";
+  const language = aiLanguageLabel(locale);
 
-  return `Genera un cuestionario educativo en español.
+  return `Generate an educational quiz in ${language}.
 
-Devuelve SOLO JSON válido con esta forma exacta:
-{"quiz":[{"id":"q1","type":"opcion_multiple","question":"...","options":["A","B","C","D"],"answer":"texto exacto de la opción correcta"}]}
+Return ONLY valid JSON with this exact shape:
+{"quiz":[{"id":"q1","type":"opcion_multiple","question":"...","options":["A","B","C","D"],"answer":"exact text of the correct option"}]}
 
-Reglas obligatorias:
-- Tema: ${topic}
-- Nivel escolar: ${level}
-- Dificultad: ${difficulty}
-- Tipo solicitado: ${questionType}
-- Cantidad de preguntas: ${count}
-- Subtemas a cubrir: ${subtopics}
-- Cada pregunta debe tener "id" único (q1, q2, ...)
-- Si type es "opcion_multiple": incluir 4 opciones claras y "answer" igual al texto de la opción correcta
-- Si type es "abierta": options puede omitirse y "answer" con respuesta modelo breve
-- Si type es "mixto": combinar ambos tipos
-- Preguntas con enunciado claro, sin ambigüedad, nivel académico apropiado
-- No uses markdown ni texto fuera del JSON`;
+Required rules:
+- Topic: ${topic}
+- School level: ${level}
+- Difficulty: ${difficulty}
+- Requested type: ${questionType}
+- Number of questions: ${count}
+- Subtopics to cover: ${subtopics}
+- Each question must have a unique "id" (q1, q2, ...)
+- If type is "opcion_multiple": include 4 clear options and "answer" equal to the correct option text
+- If type is "abierta": options may be omitted and "answer" with a brief model answer
+- If type is "mixto": combine both types
+- Clear wording, appropriate academic level
+- No markdown or text outside JSON
+- All content in ${language}`;
 }
 
 export async function POST(request: Request) {
@@ -71,40 +69,42 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as TopicToolsBody;
   } catch {
-    return NextResponse.json({ error: "JSON inválido en la solicitud." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON in request." }, { status: 400 });
   }
 
   const mode = body.mode;
-  const topic = (body.topic ?? "Tema general").trim() || "Tema general";
+  const locale = normalizeAppLocale(body.locale);
+  const topic = (body.topic ?? (locale === "en" ? "General topic" : locale === "pt" ? "Tópico geral" : "Tema general")).trim();
   const level = (body.level ?? "secundaria") as SchoolLevel | string;
   const difficulty = body.difficulty ?? "intermedio";
   const questionCount = clampQuestionCount(body.questionCount);
   const questionType = body.questionType ?? "mixto";
   const apiKey = process.env.OPENAI_API_KEY;
+  const language = aiLanguageLabel(locale);
 
   if (!mode) {
-    return NextResponse.json({ error: "El campo mode es obligatorio." }, { status: 400 });
+    return NextResponse.json({ error: "The mode field is required." }, { status: 400 });
   }
 
   if (!apiKey) {
     if (mode === "subtopics") {
-      return NextResponse.json({ subtopics: fallbackSubtopics(topic), source: "fallback" });
+      return NextResponse.json({ subtopics: fallbackSubtopics(topic, locale), source: "fallback" });
     }
     if (mode === "quiz") {
       return NextResponse.json({
-        quiz: buildFallbackQuiz(topic, questionCount, questionType),
+        quiz: buildFallbackQuiz(topic, questionCount, questionType, locale),
         source: "fallback",
-        note: "Sin OPENAI_API_KEY: se usó cuestionario local.",
+        note: "No OPENAI_API_KEY: local quiz used.",
       });
     }
-    return NextResponse.json({ content: fallbackContent(topic), source: "fallback" });
+    return NextResponse.json({ content: fallbackTopicContent(topic, locale), source: "fallback" });
   }
 
   try {
     const promptByMode: Record<Mode, string> = {
-      subtopics: `Devuelve JSON puro {"subtopics":["..."]} con 6 subtemas de "${topic}" para nivel ${level}. Solo JSON, sin markdown.`,
-      quiz: buildQuizPrompt(body, topic, level, difficulty),
-      content: `Devuelve JSON puro {"content":{"title":"...","summary":"...","examples":["..."],"references":["..."]}} para el tema "${topic}", nivel ${level}, dificultad ${difficulty}. Solo JSON.`,
+      subtopics: `Return pure JSON {"subtopics":["..."]} with 6 subtopics for "${topic}" at level ${level}. All text in ${language}. JSON only, no markdown.`,
+      quiz: buildQuizPrompt(body, topic, level, difficulty, locale),
+      content: `Return pure JSON {"content":{"title":"...","summary":"...","examples":["..."],"references":["..."]}} for topic "${topic}", level ${level}, difficulty ${difficulty}. All text in ${language}. JSON only.`,
     };
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -118,11 +118,7 @@ export async function POST(request: Request) {
         temperature: 0.4,
         response_format: { type: "json_object" },
         messages: [
-          {
-            role: "system",
-            content:
-              "Eres un generador de contenido educativo. Respondes únicamente con JSON válido en español, sin markdown.",
-          },
+          { role: "system", content: aiJsonSystemPrompt(locale) },
           { role: "user", content: promptByMode[mode] },
         ],
       }),
@@ -144,32 +140,32 @@ export async function POST(request: Request) {
     if (mode === "subtopics") {
       const subtopics = Array.isArray(parsed.subtopics)
         ? parsed.subtopics.map(String).filter(Boolean).slice(0, 8)
-        : fallbackSubtopics(topic);
+        : fallbackSubtopics(topic, locale);
       return NextResponse.json({ subtopics, source: "openai" });
     }
 
     if (mode === "quiz") {
-      const quiz = normalizeQuiz(parsed.quiz, topic, questionCount, questionType);
+      const quiz = normalizeQuiz(parsed.quiz, topic, questionCount, questionType, locale);
       return NextResponse.json({ quiz, source: "openai" });
     }
 
     return NextResponse.json({
-      content: (parsed.content as object) ?? fallbackContent(topic),
+      content: (parsed.content as object) ?? fallbackTopicContent(topic, locale),
       source: "openai",
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Error desconocido";
+    const message = error instanceof Error ? error.message : "Unknown error";
 
     if (mode === "subtopics") {
-      return NextResponse.json({ subtopics: fallbackSubtopics(topic), source: "fallback", note: message });
+      return NextResponse.json({ subtopics: fallbackSubtopics(topic, locale), source: "fallback", note: message });
     }
     if (mode === "quiz") {
       return NextResponse.json({
-        quiz: buildFallbackQuiz(topic, questionCount, questionType),
+        quiz: buildFallbackQuiz(topic, questionCount, questionType, locale),
         source: "fallback",
         note: message,
       });
     }
-    return NextResponse.json({ content: fallbackContent(topic), source: "fallback", note: message });
+    return NextResponse.json({ content: fallbackTopicContent(topic, locale), source: "fallback", note: message });
   }
 }

@@ -15,9 +15,11 @@ import {
 } from "@/lib/ai/images";
 import {
   DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
   type AppLocale,
   t,
 } from "@/lib/i18n/translations";
+import { detectLocaleFromMessages } from "@/lib/i18n/detect-locale";
 import {
   chatCompletion,
   hasOpenAIKey,
@@ -32,10 +34,10 @@ type ChatRequestBody = {
 };
 
 function normalizeLocale(value?: string): AppLocale {
-  return value === "es" ? "es" : DEFAULT_LOCALE;
+  return SUPPORTED_LOCALES.includes(value as AppLocale) ? (value as AppLocale) : DEFAULT_LOCALE;
 }
 
-function mapToOpenAIMessages(messages: TutorMessage[]): OpenAIChatMessage[] {
+function mapToOpenAIMessages(messages: TutorMessage[], locale: AppLocale): OpenAIChatMessage[] {
   return messages.map((message) => {
     if (message.role === "assistant") {
       return { role: "assistant", content: message.content };
@@ -45,7 +47,10 @@ function mapToOpenAIMessages(messages: TutorMessage[]): OpenAIChatMessage[] {
       return {
         role: "user",
         content: [
-          { type: "text", text: message.content || "Analiza esta imagen y guíame como tutor." },
+          {
+            type: "text",
+            text: message.content || t(locale, "analyzeImageTutorPrompt"),
+          },
           { type: "image_url", image_url: { url: message.imageDataUrl } },
         ],
       };
@@ -134,43 +139,54 @@ async function resolveConversation(
 }
 
 export async function POST(request: Request) {
+  let locale: AppLocale = DEFAULT_LOCALE;
   try {
     const body = (await request.json()) as ChatRequestBody;
     const messages = body.messages ?? [];
     const context = body.context;
+    const uiLocale = normalizeLocale(context?.locale);
     const latestMessages = messages.slice(-12);
+    const locale = detectLocaleFromMessages(latestMessages, uiLocale);
     const lastUserMessage = [...latestMessages]
       .reverse()
       .find((message) => message.role === "user");
     const hasImage = latestMessages.some((message) => Boolean(message.imageDataUrl));
     const topic = (context?.topic ?? "").trim();
-    const locale = normalizeLocale(context?.locale);
 
     const userId = await getAuthUserId();
     let conversationId: string | null = null;
 
-    // Persistencia del mensaje del estudiante.
+    // Persistencia del mensaje del estudiante (no debe bloquear la respuesta del tutor).
     if (userId && lastUserMessage) {
-      conversationId = await resolveConversation(
-        userId,
-        body.conversationId ?? context?.conversationId,
-        topic,
-        lastUserMessage.content,
-      );
-      await prisma.message.create({
-        data: {
-          conversationId,
-          role: "user",
-          content: lastUserMessage.content,
-          imageUrl: lastUserMessage.imageDataUrl ?? null,
-        },
-      });
+      try {
+        conversationId = await resolveConversation(
+          userId,
+          body.conversationId ?? context?.conversationId,
+          topic,
+          lastUserMessage.content,
+        );
+        await prisma.message.create({
+          data: {
+            conversationId,
+            role: "user",
+            content: lastUserMessage.content,
+            imageUrl: lastUserMessage.imageDataUrl ?? null,
+          },
+        });
+      } catch (persistError) {
+        console.error("[chat] persistencia del mensaje falló:", persistError);
+        conversationId = null;
+      }
     }
 
     // Prompt adaptativo: con BD usa perfil/mastery reales; sin BD usa el contexto del cliente.
-    const adaptiveContext: AdaptiveContext = userId
-      ? { ...(await loadAdaptiveContext(userId, topic, hasImage)), locale }
-      : {
+    let adaptiveContext: AdaptiveContext;
+    if (userId) {
+      try {
+        adaptiveContext = { ...(await loadAdaptiveContext(userId, topic, hasImage)), locale };
+      } catch (profileError) {
+        console.error("[chat] no se pudo cargar perfil adaptativo:", profileError);
+        adaptiveContext = {
           student: { academicLevel: context?.level || null },
           profile: { subjects: context?.subjects, difficulty: context?.difficulty },
           mastery: null,
@@ -178,6 +194,17 @@ export async function POST(request: Request) {
           hasImage,
           locale,
         };
+      }
+    } else {
+      adaptiveContext = {
+        student: { academicLevel: context?.level || null },
+        profile: { subjects: context?.subjects, difficulty: context?.difficulty },
+        mastery: null,
+        topic,
+        hasImage,
+        locale,
+      };
+    }
 
     let reply: string | null = null;
     let generatedImageUrl: string | null = null;
@@ -190,7 +217,7 @@ export async function POST(request: Request) {
       (body.generateImage === true || wantsImageGeneration(lastUserMessage!.content));
 
     if (shouldGenerateImage && hasOpenAIKey()) {
-      const imagePrompt = buildEducationalImagePrompt(lastUserMessage!.content, topic);
+      const imagePrompt = buildEducationalImagePrompt(lastUserMessage!.content, topic, locale);
       const imageResult = await generateEducationalImage(imagePrompt);
 
       if (imageResult?.url) {
@@ -212,7 +239,7 @@ export async function POST(request: Request) {
       const modelReply = await chatCompletion(
         [
           { role: "system", content: buildAdaptiveSystemPrompt(adaptiveContext) },
-          ...mapToOpenAIMessages(latestMessages),
+          ...mapToOpenAIMessages(latestMessages, locale),
         ],
         { temperature: 0.35 },
       );
@@ -233,30 +260,34 @@ export async function POST(request: Request) {
 
     // Persistencia de la respuesta + diagnóstico sin bloquear la respuesta.
     if (userId && conversationId) {
-      const finalReply = reply;
+      const finalReply = reply ?? "";
       const finalConversationId = conversationId;
-      await prisma.message.create({
-        data: {
-          conversationId: finalConversationId,
-          role: "assistant",
-          content: finalReply,
-          imageUrl: generatedImageUrl,
-        },
-      });
-      await prisma.conversation.update({
-        where: { id: finalConversationId },
-        data: { updatedAt: new Date(), ...(topic ? { topic } : {}) },
-      });
+      try {
+        await prisma.message.create({
+          data: {
+            conversationId: finalConversationId,
+            role: "assistant",
+            content: finalReply ?? "",
+            imageUrl: generatedImageUrl,
+          },
+        });
+        await prisma.conversation.update({
+          where: { id: finalConversationId },
+          data: { updatedAt: new Date(), ...(topic ? { topic } : {}) },
+        });
 
-      if (lastUserMessage && mode === "openai") {
-        after(() =>
-          runDiagnostics({
-            userId,
-            topic,
-            userMessage: lastUserMessage.content,
-            assistantReply: finalReply,
-          }),
-        );
+        if (lastUserMessage && mode === "openai") {
+          after(() =>
+            runDiagnostics({
+              userId,
+              topic,
+              userMessage: lastUserMessage.content,
+              assistantReply: finalReply,
+            }),
+          );
+        }
+      } catch (persistError) {
+        console.error("[chat] persistencia de la respuesta falló:", persistError);
       }
     }
 
@@ -264,13 +295,20 @@ export async function POST(request: Request) {
       reply,
       generatedImageUrl,
       conversationId,
-      meta: { mode, ...(note ? { note } : {}), persisted: Boolean(conversationId) },
+      meta: {
+        mode,
+        locale,
+        uiLocale,
+        ...(note ? { note } : {}),
+        persisted: Boolean(conversationId),
+        dbConfigured: isDbConfigured(),
+      },
     });
   } catch (error) {
     console.error("[chat] error:", error);
     return NextResponse.json(
       {
-        reply: t(DEFAULT_LOCALE, "chatErrorFallback"),
+        reply: t(locale, "chatErrorFallback"),
         meta: { mode: "error", dbConfigured: isDbConfigured() },
       },
       { status: 500 },

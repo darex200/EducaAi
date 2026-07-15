@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { AppLocale } from "@/lib/i18n/translations";
+import { t as translate } from "@/lib/i18n/translations";
 
 type Message = {
   role: "user" | "assistant";
@@ -10,13 +12,18 @@ type Message = {
 type GuidedPracticeProps = {
   topic: string;
   isDarkMode?: boolean;
+  locale?: AppLocale;
 };
 
-export function GuidedPractice({ topic, isDarkMode = false }: GuidedPracticeProps) {
+export function GuidedPractice({ topic, isDarkMode = false, locale = "en" }: GuidedPracticeProps) {
+  const initialMessage = useMemo(
+    () => translate(locale, "guidedPracticeStart", { topic }),
+    [locale, topic],
+  );
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Trabajemos ${topic} paso a paso. Para comenzar, dime qué parte quieres reforzar primero.`,
+      content: initialMessage,
     },
   ]);
   const [input, setInput] = useState("");
@@ -39,13 +46,14 @@ export function GuidedPractice({ topic, isDarkMode = false }: GuidedPracticeProp
           topic,
           level: "intermedio",
           difficulty: "intermedio",
+          locale,
         },
       }),
     });
     const data = (await res.json()) as { reply?: string };
     setMessages((current) => [
       ...current,
-      { role: "assistant", content: data.reply ?? "Sigamos por partes. ¿Cuál sería tu siguiente paso?" },
+      { role: "assistant", content: data.reply ?? translate(locale, "guidedPracticeFallback") },
     ]);
     setIsLoading(false);
   };
@@ -57,7 +65,7 @@ export function GuidedPractice({ topic, isDarkMode = false }: GuidedPracticeProp
   return (
     <section className={`rounded-2xl border p-4 ${shell}`}>
       <p className={`mb-3 text-[10px] font-semibold uppercase tracking-widest ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
-        Práctica guiada
+        {translate(locale, "guidedPractice")}
       </p>
       <div className="chat-scroll mb-3 max-h-64 space-y-2 overflow-y-auto">
         {messages.map((message, idx) => (
@@ -75,7 +83,9 @@ export function GuidedPractice({ topic, isDarkMode = false }: GuidedPracticeProp
           </div>
         ))}
         {isLoading && (
-          <p className={`text-xs ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>Generando guía…</p>
+          <p className={`text-xs ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+            {translate(locale, "guidedPracticeGenerating")}
+          </p>
         )}
       </div>
       <div className="flex gap-2">
@@ -83,7 +93,7 @@ export function GuidedPractice({ topic, isDarkMode = false }: GuidedPracticeProp
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder={`Continuar práctica sobre ${topic}…`}
+          placeholder={translate(locale, "guidedPracticeContinuePlaceholder", { topic })}
           className={`w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 ${
             isDarkMode
               ? "border-slate-600 bg-slate-900 text-slate-100 placeholder:text-slate-600"
@@ -91,7 +101,7 @@ export function GuidedPractice({ topic, isDarkMode = false }: GuidedPracticeProp
           }`}
         />
         <button type="button" onClick={send} className="btn-primary shrink-0 px-4">
-          Enviar
+          {translate(locale, "sendMessage")}
         </button>
       </div>
     </section>

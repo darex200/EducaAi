@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
-import { TopicCard } from "@/components/chat/topic-card";
+import { TopicCard, type TopicItem } from "@/components/chat/topic-card";
 import { useLanguage } from "@/context/language-context";
+import { getLessonBySlug, resolveTopicDisplayTitle } from "@/lib/lessons";
 
 export type ConversationSummary = {
   id: string;
@@ -26,13 +27,7 @@ type SidebarProps = {
   onAnalyzeDocument: () => void;
   isAnalyzingDocument?: boolean;
   practiceEnabled: boolean;
-  topics: Array<{
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    difficulty: "basico" | "intermedio" | "avanzado";
-  }>;
+  topics: TopicItem[];
   selectedTopicId: string;
   onSelectTopic: (topicId: string) => void;
   conversations: ConversationSummary[];
@@ -119,7 +114,7 @@ export function Sidebar({
   onDeleteConversation,
   onLogout,
 }: SidebarProps) {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const sectionLabel = isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400";
   const sidebarScrollRef = useRef<HTMLDivElement>(null);
   const topicCardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -164,7 +159,7 @@ export function Sidebar({
 
   return (
     <div
-      className={`theme-animate flex h-full flex-col overflow-hidden rounded-2xl border backdrop-blur-xl ${
+      className={`theme-animate flex h-full flex-col overflow-hidden rounded-r-2xl border border-l-0 backdrop-blur-xl ${
         isDarkMode
           ? "chat-sidebar-dark text-slate-100"
           : "glass-panel border-white/60 bg-white/90 text-slate-800 shadow-[0_8px_32px_rgba(15,23,42,0.06)]"
@@ -248,7 +243,7 @@ export function Sidebar({
                         </p>
                         {conversation.topic && (
                           <p className={`truncate text-[10px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400"}`}>
-                            {conversation.topic}
+                            {resolveTopicDisplayTitle(conversation.topic, locale)}
                           </p>
                         )}
                       </button>
@@ -290,15 +285,17 @@ export function Sidebar({
                 </option>
               )}
               {topics.map((topic) => (
-                <option key={topic.id} value={topic.id}>
-                  {topic.title}
+                <option key={`${topic.id}-${locale}`} value={topic.id}>
+                  {topic.lessonSlug
+                    ? (getLessonBySlug(topic.lessonSlug, locale)?.title ?? topic.title)
+                    : topic.title}
                 </option>
               ))}
             </select>
             <div className="space-y-2 pr-1">
               {topics.map((topic) => (
                 <TopicCard
-                  key={topic.id}
+                  key={`${topic.id}-${locale}`}
                   topic={topic}
                   isActive={topic.id === selectedTopicId}
                   isDarkMode={isDarkMode}

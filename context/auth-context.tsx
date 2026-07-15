@@ -7,6 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
+import { isClientDatabaseEnabled } from "@/lib/demo-mode";
 
 type User = {
   id: string;
@@ -42,7 +44,18 @@ function writeDemoUser(user: User) {
   localStorage.setItem(DEMO_USER_KEY, JSON.stringify(user));
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+async function loginWithCredentials(email: string, password: string) {
+  const result = await signIn("credentials", {
+    email,
+    password,
+    redirect: false,
+  });
+  if (result?.error) {
+    throw new Error("Correo o contraseña incorrectos.");
+  }
+}
+
+function DemoAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => readDemoUser());
 
   const value = useMemo<AuthContextValue>(
@@ -72,6 +85,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+function DatabaseAuthProvider({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession();
+
+  const value = useMemo<AuthContextValue>(() => {
+    const user = session?.user
+      ? {
+          id: session.user.id ?? "",
+          name: session.user.name ?? "Estudiante",
+          email: session.user.email ?? "",
+        }
+      : null;
+
+    return {
+      user,
+      isLoading: status === "loading",
+      isDatabaseEnabled: true,
+      login: loginWithCredentials,
+      register: async (name, email, password) => {
+        const response = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        });
+        if (!response.ok) {
+          const data = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(data?.error ?? "No se pudo crear la cuenta.");
+        }
+        await loginWithCredentials(email, password);
+      },
+      logout: async () => {
+        await signOut({ redirect: false });
+        window.location.href = "/login";
+      },
+    };
+  }, [session, status]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  if (isClientDatabaseEnabled()) {
+    return (
+      <SessionProvider>
+        <DatabaseAuthProvider>{children}</DatabaseAuthProvider>
+      </SessionProvider>
+    );
+  }
+
+  return <DemoAuthProvider>{children}</DemoAuthProvider>;
 }
 
 export function useAuth() {

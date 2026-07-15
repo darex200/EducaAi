@@ -8,6 +8,9 @@ import {
   gradeOpenAnswers,
   type GradedAnswer,
 } from "@/lib/ai/exercises";
+import { normalizeAppLocale } from "@/lib/i18n/locale-ai";
+import type { AppLocale } from "@/lib/i18n/translations";
+import { DEFAULT_LOCALE } from "@/lib/i18n/translations";
 import {
   clampQuestionCount,
   getQuestionResult,
@@ -25,6 +28,7 @@ type GenerateBody = {
   questionType?: QuizQuestionType;
   questionCount?: number;
   subtopics?: string[];
+  locale?: string;
 };
 
 type SubmitBody = {
@@ -33,6 +37,7 @@ type SubmitBody = {
   questions?: QuizQuestion[];
   answers?: Record<string, string>;
   topic?: string;
+  locale?: string;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -86,6 +91,8 @@ async function handleGenerate(body: GenerateBody, userId: string | null) {
     difficulty = difficultyFromMastery(masteryScore);
   }
 
+  const locale = normalizeAppLocale(body.locale);
+
   const { quiz, source } = await generateAdaptiveQuiz({
     topic,
     level: body.level,
@@ -95,6 +102,7 @@ async function handleGenerate(body: GenerateBody, userId: string | null) {
     subtopics: body.subtopics,
     weaknesses,
     commonErrors,
+    locale,
   });
 
   let attemptId: string | null = null;
@@ -132,7 +140,29 @@ async function handleGenerate(body: GenerateBody, userId: string | null) {
 async function gradeQuiz(
   questions: QuizQuestion[],
   answers: Record<string, string>,
+  locale: AppLocale = DEFAULT_LOCALE,
 ): Promise<{ feedback: GradedAnswer[]; score: number }> {
+  const labels = {
+    en: {
+      correct: "Correct answer.",
+      unanswered: "Unanswered.",
+      incorrect: (answer: string) => `Incorrect. Expected answer: ${answer}`,
+      recorded: "Answer recorded.",
+    },
+    es: {
+      correct: "Respuesta correcta.",
+      unanswered: "Sin responder.",
+      incorrect: (answer: string) => `Incorrecta. Respuesta esperada: ${answer}`,
+      recorded: "Respuesta registrada.",
+    },
+    pt: {
+      correct: "Resposta correta.",
+      unanswered: "Sem resposta.",
+      incorrect: (answer: string) => `Incorreta. Resposta esperada: ${answer}`,
+      recorded: "Resposta registrada.",
+    },
+  }[locale];
+
   const objective: GradedAnswer[] = [];
   const openItems: Array<{ question: QuizQuestion; userAnswer: string }> = [];
 
@@ -148,16 +178,16 @@ async function gradeQuiz(
       correct: result === "correcta",
       feedback:
         result === "correcta"
-          ? "Respuesta correcta."
+          ? labels.correct
           : result === "sin-responder"
-            ? "Sin responder."
+            ? labels.unanswered
             : question.answer
-              ? `Incorrecta. Respuesta esperada: ${question.answer}`
-              : "Respuesta registrada.",
+              ? labels.incorrect(question.answer)
+              : labels.recorded,
     });
   }
 
-  const openGraded = await gradeOpenAnswers(openItems);
+  const openGraded = await gradeOpenAnswers(openItems, locale);
   const feedback = [...objective, ...openGraded];
   const score = feedback.filter((item) => item.correct).length;
   return { feedback, score };
@@ -176,7 +206,8 @@ async function handleSubmit(body: SubmitBody, userId: string | null) {
     }
 
     const questions = (attempt.questions as unknown as QuizQuestion[]) ?? [];
-    const { feedback, score } = await gradeQuiz(questions, answers);
+    const locale = normalizeAppLocale(body.locale);
+    const { feedback, score } = await gradeQuiz(questions, answers, locale);
     const total = questions.length || attempt.total;
 
     await prisma.quizAttempt.update({
@@ -230,7 +261,8 @@ async function handleSubmit(body: SubmitBody, userId: string | null) {
       { status: 400 },
     );
   }
-  const { feedback, score } = await gradeQuiz(questions, answers);
+  const locale = normalizeAppLocale(body.locale);
+  const { feedback, score } = await gradeQuiz(questions, answers, locale);
   return NextResponse.json({ score, total: questions.length, feedback });
 }
 

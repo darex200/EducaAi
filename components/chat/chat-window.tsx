@@ -47,7 +47,7 @@ export function ChatWindow({
   return (
     <section className={`flex h-full flex-col overflow-hidden rounded-2xl border ${shell}`}>
       <header
-        className={`theme-animate shrink-0 border-b px-5 py-3.5 ${
+        className={`theme-animate shrink-0 border-b px-4 py-3 sm:px-6 ${
           isDarkMode ? "dark-header" : "border-slate-100/80 bg-white/50"
         }`}
       >
@@ -75,7 +75,7 @@ export function ChatWindow({
       <div
         ref={bodyRef}
         onScroll={onBodyScroll}
-        className={`chat-scroll chat-scroll-smooth theme-animate flex-1 space-y-3 overflow-y-auto px-4 py-5 sm:px-6 ${
+        className={`chat-scroll chat-scroll-smooth theme-animate flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-8 sm:py-6 ${
           isDarkMode ? "chat-scroll-dark chat-body-dark" : "bg-gradient-to-b from-slate-50/30 to-transparent"
         }`}
       >

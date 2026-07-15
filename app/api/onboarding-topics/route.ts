@@ -1,32 +1,27 @@
 import { NextResponse } from "next/server";
+import {
+  aiJsonSystemPrompt,
+  aiLanguageLabel,
+  fallbackOnboardingTopics,
+  normalizeAppLocale,
+} from "@/lib/i18n/locale-ai";
 
 type Body = {
   subjects?: string[];
   level?: string;
+  locale?: string;
 };
-
-function fallbackTopics(subjects: string[], level: string) {
-  const subject = subjects[0] || "Aprendizaje general";
-  const bySubject: Record<string, string[]> = {
-    Matematicas: ["Álgebra básica", "Fracciones y proporciones", "Ecuaciones lineales"],
-    Fisica: ["Movimiento y velocidad", "Fuerza y energía", "Leyes de Newton"],
-    Quimica: ["Estructura atómica", "Enlaces químicos", "Reacciones básicas"],
-    Lenguaje: ["Comprensión lectora", "Estructura textual", "Análisis gramatical"],
-    Biologia: ["Célula", "Fotosíntesis", "Ecosistemas"],
-    Historia: ["Líneas del tiempo", "Causas y consecuencias", "Fuentes históricas"],
-  };
-
-  return bySubject[subject] ?? [`Fundamentos de ${subject}`, `Ejercicios de ${subject}`, `Repaso de ${level}`];
-}
 
 export async function POST(request: Request) {
   const body = (await request.json()) as Body;
   const subjects = body.subjects ?? [];
   const level = body.level ?? "secundaria";
+  const locale = normalizeAppLocale(body.locale);
   const apiKey = process.env.OPENAI_API_KEY;
+  const language = aiLanguageLabel(locale);
 
   if (!apiKey) {
-    return NextResponse.json({ topics: fallbackTopics(subjects, level), source: "fallback" });
+    return NextResponse.json({ topics: fallbackOnboardingTopics(subjects, level, locale), source: "fallback" });
   }
 
   try {
@@ -42,27 +37,29 @@ export async function POST(request: Request) {
         messages: [
           {
             role: "system",
-            content:
-              "Genera exactamente 6 temas académicos en español, en formato JSON puro: {\"topics\":[\"...\",\"...\"]}. Sin texto adicional.",
+            content: `${aiJsonSystemPrompt(locale)} Generate exactly 6 academic topics in pure JSON: {"topics":["...","..."]}. No extra text.`,
           },
           {
             role: "user",
-            content: `Materias: ${subjects.join(", ")}. Nivel: ${level}.`,
+            content: `Subjects: ${subjects.join(", ")}. Level: ${level}. All topic names in ${language}.`,
           },
         ],
       }),
     });
 
     if (!response.ok) {
-      return NextResponse.json({ topics: fallbackTopics(subjects, level), source: "fallback" });
+      return NextResponse.json({ topics: fallbackOnboardingTopics(subjects, level, locale), source: "fallback" });
     }
 
     const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const content = data.choices?.[0]?.message?.content ?? "";
     const parsed = JSON.parse(content) as { topics?: string[] };
     const topics = parsed.topics?.filter(Boolean).slice(0, 6);
-    return NextResponse.json({ topics: topics?.length ? topics : fallbackTopics(subjects, level), source: "openai" });
+    return NextResponse.json({
+      topics: topics?.length ? topics : fallbackOnboardingTopics(subjects, level, locale),
+      source: "openai",
+    });
   } catch {
-    return NextResponse.json({ topics: fallbackTopics(subjects, level), source: "fallback" });
+    return NextResponse.json({ topics: fallbackOnboardingTopics(subjects, level, locale), source: "fallback" });
   }
 }

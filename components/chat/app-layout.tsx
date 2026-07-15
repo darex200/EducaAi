@@ -21,8 +21,10 @@ export function AppLayout({ sidebar, children, isDarkMode = false }: AppLayoutPr
       >
         <LanguageToggle isDarkMode={isDarkMode} />
       </div>
-      <div className="mx-auto flex min-h-0 flex-1 max-w-[1920px] gap-3 px-2 py-2 sm:gap-4 sm:px-4 sm:py-3">
-        <aside className="theme-animate hidden h-full w-[280px] shrink-0 lg:block">{sidebar}</aside>
+      <div className="flex min-h-0 w-full flex-1 gap-1.5 py-1 pl-0 pr-2">
+        <aside className="theme-animate hidden h-full w-[252px] shrink-0 overflow-hidden rounded-r-2xl lg:block">
+          {sidebar}
+        </aside>
         <main className="theme-animate min-h-0 min-w-0 flex-1">{children}</main>
       </div>
     </div>

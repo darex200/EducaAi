@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
   type AppLocale,
   type TranslationKey,
   t as translate,
@@ -29,15 +30,11 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(undefine
 function readStoredLocale(): AppLocale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === "es" ? "es" : DEFAULT_LOCALE;
+  return SUPPORTED_LOCALES.includes(stored as AppLocale) ? (stored as AppLocale) : DEFAULT_LOCALE;
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<AppLocale>(DEFAULT_LOCALE);
-
-  useEffect(() => {
-    setLocaleState(readStoredLocale());
-  }, []);
+  const [locale, setLocaleState] = useState<AppLocale>(() => readStoredLocale());
 
   useEffect(() => {
     document.documentElement.lang = locale;

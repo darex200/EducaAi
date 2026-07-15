@@ -1,4 +1,9 @@
+import "server-only";
+
 import { hasOpenAIKey } from "@/lib/ai/openai";
+import { externalFetch } from "@/lib/ai/http";
+
+export { buildEducationalImagePrompt, wantsImageGeneration } from "@/lib/ai/image-intent";
 
 const OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations";
 
@@ -13,46 +18,6 @@ export type GenerateImageResult = {
   revisedPrompt?: string;
   model: string;
 };
-
-function normalizeText(text: string) {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-export function buildEducationalImagePrompt(userText: string, topic?: string) {
-  const request = userText.trim();
-  const topicHint = topic ? ` Tema de estudio: ${topic}.` : "";
-
-  return [
-    "Ilustración educativa clara y didáctica para estudiantes.",
-    "Estilo: diagrama escolar limpio, colores suaves, fondo neutro, alta legibilidad.",
-    "Sin marcas de agua, sin logos, sin texto ilegible o iletrado.",
-    topicHint,
-    `Solicitud del estudiante: ${request}`,
-  ]
-    .filter(Boolean)
-    .join(" ");
-}
-
-/** Detecta si el estudiante pide crear una ilustración o diagrama. */
-export function wantsImageGeneration(text: string) {
-  const normalized = normalizeText(text);
-
-  const nouns =
-    /(imagen|imagenes|diagrama|diagramas|dibujo|dibujos|ilustracion|ilustraciones|esquema|esquemas|grafico|graficos|infografia|infografias|mapa conceptual|mapa mental)/;
-  const actions =
-    /(genera|generar|crea|crear|haz|hacer|dibuja|dibujar|ilustra|ilustrar|disena|disenar|muestrame|hazme|pinta|visualiza|representa|quiero|necesito|dame|podrias|puedes)/;
-  const nounPhrase = /(imagen|diagrama|dibujo|ilustracion|esquema|grafico) de /;
-
-  if (nounPhrase.test(normalized)) return true;
-  if (nouns.test(normalized) && actions.test(normalized)) return true;
-
-  return /(genera|crea|haz|dibuja|ilustra).{0,80}(imagen|diagrama|dibujo|ilustracion|esquema)/.test(
-    normalized,
-  );
-}
 
 async function requestImage(
   prompt: string,
@@ -75,7 +40,7 @@ async function requestImage(
   }
 
   try {
-    const response = await fetch(OPENAI_IMAGES_URL, {
+    const response = await externalFetch(OPENAI_IMAGES_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

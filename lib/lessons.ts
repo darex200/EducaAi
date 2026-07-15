@@ -1,12 +1,8 @@
-export type Lesson = {
-  slug: string;
-  title: string;
-  explanation: string;
-  steps: string[];
-  practiceQuestions: string[];
-};
+import type { AppLocale } from "@/lib/i18n/translations";
+import type { Lesson } from "@/lib/lesson-types";
+import { lessonsEn, lessonsPt } from "@/lib/lessons-i18n";
 
-export const lessons: Lesson[] = [
+const lessonsEs: Lesson[] = [
   {
     slug: "math",
     title: "Fundamentos de Matematicas",
@@ -137,6 +133,62 @@ export const lessons: Lesson[] = [
   },
 ];
 
-export function getLessonBySlug(slug: string) {
-  return lessons.find((lesson) => lesson.slug === slug);
+const lessonsByLocale: Record<AppLocale, Lesson[]> = {
+  en: lessonsEn,
+  es: lessonsEs,
+  pt: lessonsPt,
+};
+
+/** Catálogo en español (compatibilidad). */
+export const lessons = lessonsEs;
+
+export type { Lesson } from "@/lib/lesson-types";
+
+export function getLessons(locale: AppLocale = "es"): Lesson[] {
+  return lessonsByLocale[locale] ?? lessonsEs;
 }
+
+export function getLessonBySlug(slug: string, locale: AppLocale = "es") {
+  return getLessons(locale).find((lesson) => lesson.slug === slug);
+}
+
+function normalizeTopicName(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** Encuentra el slug de lección aunque el título esté en otro idioma. */
+export function findLessonSlugByTitle(title: string) {
+  const normalized = normalizeTopicName(title);
+  if (!normalized) return null;
+
+  for (const lesson of getLessons("es")) {
+    for (const loc of ["en", "es", "pt"] as AppLocale[]) {
+      const candidate = getLessonBySlug(lesson.slug, loc);
+      if (candidate && normalizeTopicName(candidate.title) === normalized) {
+        return lesson.slug;
+      }
+    }
+  }
+
+  const direct = getLessons("es").find(
+    (lesson) =>
+      normalizeTopicName(lesson.title) === normalized ||
+      normalizeTopicName(lesson.title).includes(normalized) ||
+      normalized.includes(normalizeTopicName(lesson.title)),
+  );
+  return direct?.slug ?? null;
+}
+
+/** Muestra el título del tema en el idioma activo. */
+export function resolveTopicDisplayTitle(title: string, locale: AppLocale) {
+  const slug = findLessonSlugByTitle(title);
+  if (slug) return getLessonBySlug(slug, locale)?.title ?? title;
+  return title;
+}
+
+export const LESSON_SLUGS = lessonsEs.map((lesson) => lesson.slug);

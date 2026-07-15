@@ -1,4 +1,4 @@
-import type { Lesson } from "@/lib/lessons";
+import type { Lesson } from "@/lib/lesson-types";
 
 export function LessonView({ lesson }: { lesson: Lesson }) {
   return (

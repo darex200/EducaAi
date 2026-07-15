@@ -1,4 +1,7 @@
 import { chatJSON } from "@/lib/ai/openai";
+import type { AppLocale } from "@/lib/i18n/translations";
+import { DEFAULT_LOCALE } from "@/lib/i18n/translations";
+import { aiJsonSystemPrompt, aiLanguageLabel } from "@/lib/i18n/locale-ai";
 import {
   buildFallbackQuiz,
   clampQuestionCount,
@@ -34,6 +37,7 @@ export type GenerateQuizParams = {
   subtopics?: string[];
   weaknesses?: string[];
   commonErrors?: string[];
+  locale?: AppLocale;
 };
 
 /** Calcula la dificultad automática a partir del dominio del tema (0-100). */
@@ -49,50 +53,46 @@ export async function generateAdaptiveQuiz(params: GenerateQuizParams): Promise<
   source: "openai" | "fallback";
 }> {
   const count = clampQuestionCount(params.questionCount);
+  const locale = params.locale ?? DEFAULT_LOCALE;
+  const language = aiLanguageLabel(locale);
   const prompt = [
-    `Genera un cuestionario de ${count} preguntas sobre "${params.topic}".`,
-    params.level ? `Nivel del estudiante: ${params.level}.` : "",
-    `Dificultad: ${params.difficulty}.`,
+    `Generate a quiz with ${count} questions about "${params.topic}".`,
+    params.level ? `Student level: ${params.level}.` : "",
+    `Difficulty: ${params.difficulty}.`,
     TYPE_INSTRUCTIONS[params.questionType],
-    params.subtopics?.length
-      ? `Cubre estos subtemas: ${params.subtopics.join(", ")}.`
-      : "",
+    params.subtopics?.length ? `Cover these subtopics: ${params.subtopics.join(", ")}.` : "",
     params.weaknesses?.length
-      ? `El estudiante tiene debilidades en: ${params.weaknesses.join(", ")}. Incluye 1-2 preguntas que las refuercen.`
+      ? `The student has weaknesses in: ${params.weaknesses.join(", ")}. Include 1-2 reinforcing questions.`
       : "",
     params.commonErrors?.length
-      ? `Errores frecuentes del estudiante: ${params.commonErrors.join(" | ")}. Diseña distractores o preguntas que detecten si los repite.`
+      ? `Frequent student errors: ${params.commonErrors.join(" | ")}. Design distractors or questions that detect repeats.`
       : "",
     "",
-    "Responde SOLO con JSON válido con esta forma exacta:",
+    "Respond ONLY with valid JSON in this exact shape:",
     '{"quiz": [{"id": "q1", "type": "opcion_multiple|verdadero_falso|abierta|problema|caso|examen", "question": "...", "options": ["..."], "answer": "..."}]}',
-    'Las preguntas sin opciones (abierta, problema, caso) omiten el campo "options".',
-    "Todo el contenido en español. Si hay matemáticas, escribe fórmulas en LaTeX con $...$.",
+    'Questions without options (abierta, problema, caso) omit the "options" field.',
+    `All content in ${language}. If there is math, write formulas in LaTeX with $...$.`,
   ]
     .filter(Boolean)
     .join("\n");
 
   const result = await chatJSON<{ quiz?: unknown }>(
     [
-      {
-        role: "system",
-        content:
-          "Eres un generador de contenido educativo experto. Respondes únicamente con JSON válido en español, sin markdown.",
-      },
+      { role: "system", content: aiJsonSystemPrompt(locale) },
       { role: "user", content: prompt },
     ],
     { temperature: 0.4, maxTokens: 2500 },
   );
 
   if (result?.quiz) {
-    const quiz = normalizeQuiz(result.quiz, params.topic, count, params.questionType);
+    const quiz = normalizeQuiz(result.quiz, params.topic, count, params.questionType, locale);
     if (quiz.length) {
       return { quiz, source: "openai" };
     }
   }
 
   return {
-    quiz: buildFallbackQuiz(params.topic, count, params.questionType),
+    quiz: buildFallbackQuiz(params.topic, count, params.questionType, locale),
     source: "fallback",
   };
 }
@@ -109,8 +109,21 @@ export type GradedAnswer = {
  */
 export async function gradeOpenAnswers(
   items: Array<{ question: QuizQuestion; userAnswer: string }>,
+  locale: AppLocale = DEFAULT_LOCALE,
 ): Promise<GradedAnswer[]> {
   if (!items.length) return [];
+
+  const language = aiLanguageLabel(locale);
+  const feedbackAccepted = {
+    en: "Answer accepted.",
+    es: "Respuesta aceptada.",
+    pt: "Resposta aceita.",
+  }[locale];
+  const feedbackRecorded = {
+    en: "Answer recorded; compare it with the suggested solution.",
+    es: "Respuesta registrada; compárala con la solución sugerida.",
+    pt: "Resposta registrada; compare com a solução sugerida.",
+  }[locale];
 
   const payload = items.map(({ question, userAnswer }, index) => ({
     id: question.id || `open-${index}`,
@@ -126,10 +139,10 @@ export async function gradeOpenAnswers(
       {
         role: "system",
         content: [
-          "Eres un corrector académico justo pero exigente. Evalúa cada respuesta del estudiante frente a los criterios.",
-          'Responde SOLO con JSON: {"results": [{"id": "...", "correct": true|false, "feedback": "explicación breve (máx 2 frases) de por qué y cómo mejorar"}]}',
-          "Marca correct=true si la respuesta demuestra comprensión esencial aunque la redacción difiera.",
-          "Feedback en español, concreto y útil.",
+          "You are a fair but rigorous academic grader. Evaluate each student answer against the criteria.",
+          'Respond ONLY with JSON: {"results": [{"id": "...", "correct": true|false, "feedback": "brief explanation (max 2 sentences) of why and how to improve"}]}',
+          "Mark correct=true if the answer shows essential understanding even if wording differs.",
+          `Feedback in ${language}, concrete and useful.`,
         ].join("\n"),
       },
       { role: "user", content: JSON.stringify({ respuestas: payload }) },
@@ -147,16 +160,13 @@ export async function gradeOpenAnswers(
         feedback: String(match.feedback ?? "").slice(0, 400),
       };
     }
-    // Fallback sin IA: comparación laxa con la respuesta esperada.
     const expected = (question.answer ?? "").trim().toLowerCase();
     const given = userAnswer.trim().toLowerCase();
     const correct = Boolean(expected && given && (given === expected || expected.includes(given)));
     return {
       questionId: question.id,
       correct,
-      feedback: correct
-        ? "Respuesta aceptada."
-        : "Respuesta registrada; compárala con la solución sugerida.",
+      feedback: correct ? feedbackAccepted : feedbackRecorded,
     };
   });
 }

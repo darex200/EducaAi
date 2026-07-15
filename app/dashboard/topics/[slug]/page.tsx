@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { TopicWorkspace } from "@/components/topics/topic-workspace";
-import { getLessonBySlug, lessons } from "@/lib/lessons";
+import { TopicSlugClient } from "@/components/topics/topic-slug-client";
+import { LESSON_SLUGS } from "@/lib/lessons";
 
 export function generateStaticParams() {
-  return lessons.map((lesson) => ({ slug: lesson.slug }));
+  return LESSON_SLUGS.map((slug) => ({ slug }));
 }
 
 export default async function DashboardTopicPage({
@@ -13,18 +12,7 @@ export default async function DashboardTopicPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const lesson = getLessonBySlug(slug);
-
-  if (!lesson) {
-    notFound();
-  }
-
-  return (
-    <main className="space-y-4">
-      <Link href="/dashboard/topics" className="text-sm font-medium text-indigo-700">
-        Volver a temas
-      </Link>
-      <TopicWorkspace lesson={lesson} />
-    </main>
-  );
+  const exists = LESSON_SLUGS.includes(slug);
+  if (!exists) notFound();
+  return <TopicSlugClient slug={slug} />;
 }

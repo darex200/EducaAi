@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ExamDateField } from "@/components/plan/exam-date-field";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { useLanguage } from "@/context/language-context";
+import { dateLocaleTag } from "@/lib/i18n/translations";
 
 type StudyPlanDay = {
   day: string;
@@ -21,7 +24,16 @@ type GeneratedStudyPlan = {
   tips: string[];
 };
 
+function toInputDate(value: string | Date | null | undefined) {
+  if (!value) return "";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
 export default function StudyPlanPage() {
+  const { locale, t } = useLanguage();
   const [examDate, setExamDate] = useState("");
   const [hoursPerWeek, setHoursPerWeek] = useState(5);
   const [goal, setGoal] = useState("");
@@ -41,14 +53,19 @@ export default function StudyPlanPage() {
             createdAt?: string;
             hoursPerWeek?: number;
             goal?: string;
+            examDate?: string | null;
           };
           if (data.plan) {
             setPlan(data.plan);
             if (data.hoursPerWeek) setHoursPerWeek(data.hoursPerWeek);
             if (data.goal) setGoal(data.goal);
+            if (data.examDate) setExamDate(toInputDate(data.examDate));
             if (data.createdAt) {
+              const dateLocale = dateLocaleTag(locale);
               setPlanMeta(
-                `Último plan generado el ${new Date(data.createdAt).toLocaleDateString("es")}`,
+                t("planLastGenerated", {
+                  date: new Date(data.createdAt).toLocaleDateString(dateLocale),
+                }),
               );
             }
           }
@@ -59,7 +76,7 @@ export default function StudyPlanPage() {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [locale]);
 
   const generatePlan = async () => {
     setIsGenerating(true);
@@ -86,8 +103,10 @@ export default function StudyPlanPage() {
       setPlan(data.plan);
       setPlanMeta(
         data.weakTopics?.length
-          ? `Plan priorizando tus temas débiles: ${data.weakTopics.slice(0, 3).join(", ")}`
-          : "Plan generado a partir de tu perfil de aprendizaje.",
+          ? t("planPrioritizingWeak", {
+              topics: data.weakTopics.slice(0, 3).join(", "),
+            })
+          : t("planFromProfile"),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo generar el plan.");
@@ -99,46 +118,46 @@ export default function StudyPlanPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Plan de estudio</h1>
-        <p className="text-sm text-slate-500">
-          Genera un plan personalizado según tu examen, tus horas disponibles y tus temas débiles.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t("studyPlanTitle")}</h1>
+        <p className="text-sm text-slate-500">{t("studyPlanSubtitle")}</p>
       </header>
 
-      <section className="card-surface p-5">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <label className="block text-xs text-slate-500">
-            Fecha de examen (opcional)
-            <input
-              type="date"
-              value={examDate}
-              onChange={(event) => setExamDate(event.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20"
-            />
+      <section className="card-surface space-y-5 p-5">
+        <ExamDateField value={examDate} onChange={setExamDate} />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t("hoursPerWeekLabel")}
+            </span>
+            <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+              <input
+                type="range"
+                min={1}
+                max={30}
+                value={hoursPerWeek}
+                onChange={(event) => setHoursPerWeek(Number(event.target.value))}
+                className="h-2 flex-1 cursor-pointer accent-blue-600"
+              />
+              <span className="w-12 text-right text-sm font-semibold text-blue-700">{hoursPerWeek}h</span>
+            </div>
           </label>
-          <label className="block text-xs text-slate-500">
-            Horas disponibles por semana
-            <input
-              type="number"
-              min={1}
-              max={60}
-              value={hoursPerWeek}
-              onChange={(event) => setHoursPerWeek(Number(event.target.value) || 1)}
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20"
-            />
-          </label>
-          <label className="block text-xs text-slate-500">
-            Objetivo (opcional)
+
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t("studyGoalLabel")}
+            </span>
             <input
               type="text"
               value={goal}
               onChange={(event) => setGoal(event.target.value)}
-              placeholder="Ej: aprobar el parcial de cálculo"
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20"
+              placeholder={t("studyGoalPlaceholder")}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20"
             />
           </label>
         </div>
-        <div className="mt-4 flex items-center justify-between gap-3">
+
+        <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
           {error ? <p className="text-sm text-red-600">{error}</p> : <span />}
           <button
             type="button"
@@ -146,14 +165,18 @@ export default function StudyPlanPage() {
             disabled={isGenerating}
             className="btn-primary px-5 py-2.5 text-sm"
           >
-            {isGenerating ? "Generando plan…" : plan ? "Regenerar plan" : "Generar plan"}
+            {isGenerating
+              ? t("generatingPlan")
+              : plan
+                ? t("regeneratePlan")
+                : t("generatePlan")}
           </button>
         </div>
       </section>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <LoadingSpinner label="Cargando plan..." />
+          <LoadingSpinner label={t("loadingPlan")} />
         </div>
       ) : plan ? (
         <>
@@ -201,7 +224,7 @@ export default function StudyPlanPage() {
           {plan.tips.length > 0 && (
             <section className="card-surface p-5">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Consejos
+                {t("planTips")}
               </h2>
               <ul className="space-y-2">
                 {plan.tips.map((tip) => (
@@ -216,7 +239,7 @@ export default function StudyPlanPage() {
         </>
       ) : (
         <div className="card-surface p-6 text-sm text-slate-500">
-          Aún no tienes un plan de estudio. Configura tus horas y genera el primero.
+          {t("planEmpty")}
         </div>
       )}
     </div>

@@ -13,12 +13,17 @@ import { useAuth } from "@/context/auth-context";
 import { useLanguage } from "@/context/language-context";
 import { useLearning } from "@/context/learning-context";
 import type { TutorMessage } from "@/components/ai-tutor/types";
-import { wantsImageGeneration } from "@/lib/ai/images";
-import { difficultyLabel } from "@/lib/i18n/translations";
-import { lessons } from "@/lib/lessons";
+import { wantsImageGeneration } from "@/lib/ai/image-intent";
+import { difficultyLabel, academicLevelLabel } from "@/lib/i18n/translations";
+import { topicCategoryKeys, type TopicCategoryKey } from "@/lib/i18n/locale-ai";
+import { getLessonBySlug, getLessons, resolveTopicDisplayTitle } from "@/lib/lessons";
+import type { TopicItem } from "@/components/chat/topic-card";
+import {
+  findStoredTopicIndex,
+  useLocalizedGeneratedTopics,
+} from "@/hooks/use-localized-generated-topics";
 
 const ACTIVE_CONVERSATION_KEY = "educa-ai-active-conversation";
-const topicCategories = ["Ciencias", "Matematicas", "Lenguaje", "Historia", "Tecnologia"];
 
 function normalizeTopicName(value: string) {
   return value
@@ -91,29 +96,30 @@ export function ChatContainer() {
   } | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const dynamicTopics = useMemo(
+  const localizedGeneratedTopics = useLocalizedGeneratedTopics({
+    subjects: profile.subjects,
+    level: profile.level,
+    storedTopics: profile.generatedTopics,
+    locale,
+  });
+  const dynamicTopics = useMemo<TopicItem[]>(
     () => {
-      const lessonTopics = lessons.map((lesson, index) => ({
+      const categoryKeys = topicCategoryKeys();
+      const lessonTopics = getLessons(locale).map((lesson, index) => ({
         id: lesson.slug,
+        lessonSlug: lesson.slug,
         title: lesson.title,
         description: lesson.explanation,
-        category: topicCategories[index % topicCategories.length],
+        categoryKey: categoryKeys[index % categoryKeys.length] as TopicCategoryKey,
+        category: "",
         difficulty: (["basico", "intermedio", "avanzado"] as const)[index % 3],
       }));
-      const customTopicTitles = [
-        ...profile.generatedTopics,
-        ...(profile.topic ? [profile.topic] : []),
-      ].filter(
-        (topic, index, list) =>
-          topic &&
-          list.findIndex((item) => topicMatches(item, topic)) === index &&
-          !lessonTopics.some((lesson) => topicMatches(lesson.title, topic)),
-      );
-      const customTopics = customTopicTitles.map((topic, index) => ({
-        id: `topic-custom-${index}-${topicIdFromTitle(topic, index).replace(/^topic-/, "")}`,
+      const customTopics = localizedGeneratedTopics.map((topic, index) => ({
+        id: `topic-custom-${index}`,
         title: topic,
-        description: t("customTopicDescription", { topic }),
-        category: t("categoryCustom"),
+        description: "",
+        categoryKey: "categoryCustom" as const,
+        category: "",
         difficulty: profile.difficulty,
       }));
 
@@ -124,7 +130,7 @@ export function ChatContainer() {
         return true;
       });
     },
-    [profile.difficulty, profile.generatedTopics, profile.topic, t],
+    [locale, localizedGeneratedTopics, profile.difficulty],
   );
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -135,7 +141,13 @@ export function ChatContainer() {
     [dynamicTopics, selectedTopicId],
   );
   const hasExplicitTopic = Boolean(selectedTopic);
-  const activeTopicTitle = selectedTopic?.title ?? "";
+  const activeTopicTitle = useMemo(() => {
+    if (!selectedTopic) return "";
+    if (selectedTopic.lessonSlug) {
+      return getLessonBySlug(selectedTopic.lessonSlug, locale)?.title ?? selectedTopic.title;
+    }
+    return selectedTopic.title;
+  }, [selectedTopic, locale]);
   const activeDifficulty = selectedTopic
     ? difficultyLabel(locale, selectedTopic.difficulty)
     : t("difficultyNotSet");
@@ -246,6 +258,19 @@ export function ChatContainer() {
     scrollChatToBottom("smooth");
   }, [selectedTopicId]);
 
+  useEffect(() => {
+    setContent(null);
+  }, [locale]);
+
+  useEffect(() => {
+    if (!profile.topic && !selectedTopicId) return;
+    const storedIndex = findStoredTopicIndex(profile.generatedTopics, profile.topic);
+    if (storedIndex >= 0) {
+      const nextId = `topic-custom-${storedIndex}`;
+      if (selectedTopicId !== nextId) setSelectedTopicId(nextId);
+    }
+  }, [locale, localizedGeneratedTopics, profile.generatedTopics, profile.topic, selectedTopicId]);
+
   const handleSend = async ({
     text,
     imageFile,
@@ -289,19 +314,22 @@ export function ChatContainer() {
         }),
       });
 
-      if (!response.ok) throw new Error("Fallo la solicitud");
-
       const data = (await response.json()) as {
         reply?: string;
         generatedImageUrl?: string | null;
         conversationId?: string | null;
+        meta?: { mode?: string; note?: string };
+        error?: string;
       };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? t("chatError"));
+      }
+
       const assistantMessage: TutorMessage = {
         id: `assistant-${crypto.randomUUID()}`,
         role: "assistant",
-        content:
-          data.reply ??
-          "No pude responder en este intento. Reenvia tu pregunta y lo resolvemos paso a paso.",
+        content: data.reply ?? t("chatEmptyReply"),
         generatedImageUrl: data.generatedImageUrl ?? undefined,
       };
       setMessages((current) => [...current, assistantMessage]);
@@ -311,8 +339,16 @@ export function ChatContainer() {
       if (data.conversationId) {
         void refreshConversations();
       }
-    } catch {
-      setError(t("chatError"));
+      if (
+        data.meta?.mode === "guided-fallback" ||
+        data.meta?.mode === "image-unconfigured" ||
+        data.meta?.mode === "openai-image-error"
+      ) {
+        setError(t("openaiUnavailable"));
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(message.includes("API") ? t("chatError") : t("chatErrorNetwork"));
     } finally {
       setIsSending(false);
     }
@@ -344,7 +380,7 @@ export function ChatContainer() {
     const placeholder: TutorMessage = {
       id: `user-${crypto.randomUUID()}`,
       role: "user",
-      content: `He subido el documento "${file.name}" para analizarlo.`,
+      content: t("documentUploaded", { name: file.name }),
     };
     setMessages((current) => [...current, placeholder]);
 
@@ -361,7 +397,7 @@ export function ChatContainer() {
         error?: string;
       };
       if (!response.ok || !data.markdown) {
-        throw new Error(data.error ?? "No se pudo analizar el documento.");
+        throw new Error(data.error ?? t("documentAnalyzeError"));
       }
       setMessages((current) => [
         ...current,
@@ -372,9 +408,7 @@ export function ChatContainer() {
         },
       ]);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "No se pudo analizar el documento.",
-      );
+      setError(err instanceof Error ? err.message : t("documentAnalyzeError"));
     } finally {
       setIsAnalyzingDocument(false);
     }
@@ -391,6 +425,7 @@ export function ChatContainer() {
         topic: selectedTopic.title,
         level: "intermedio",
         difficulty: selectedTopic.difficulty,
+        locale,
       }),
     });
     const data = (await res.json()) as {
@@ -459,17 +494,19 @@ export function ChatContainer() {
               : t("emptyChat")
           }
           topicLabel={hasExplicitTopic ? activeTopicTitle : t("topicNotSelected")}
-          levelLabel={profile.level || t("levelNotSet")}
+          levelLabel={profile.level ? academicLevelLabel(locale, profile.level) : t("levelNotSet")}
           difficultyLabel={hasExplicitTopic ? activeDifficulty : t("difficultyNotSet")}
           showTopicSelector={showTopicSelector}
           topicSelector={
             <TopicSelector
               onApply={(topic) => {
                 setShowTopicSelector(false);
+                const customIndex = localizedGeneratedTopics.findIndex((item) => item === topic);
                 const topicId =
-                  dynamicTopics.find((item) => topicMatches(item.title, topic))?.id ??
-                  topicIdFromTitle(topic, 0);
-                handleSelectTopic(topicId);
+                  customIndex >= 0
+                    ? `topic-custom-${customIndex}`
+                    : dynamicTopics.find((item) => topicMatches(item.title, topic))?.id ?? "";
+                if (topicId) handleSelectTopic(topicId);
               }}
             />
           }
@@ -477,7 +514,7 @@ export function ChatContainer() {
             <div className="space-y-3">
               <ContentViewer data={content} loading={isContentLoading} isDarkMode={isDarkMode} />
               {showGuidedPractice && selectedTopic && (
-                <GuidedPractice topic={selectedTopic.title} isDarkMode={isDarkMode} />
+                <GuidedPractice topic={selectedTopic.title} isDarkMode={isDarkMode} locale={locale} />
               )}
             </div>
           }
@@ -494,7 +531,7 @@ export function ChatContainer() {
           error={error}
         />
         {selectedTopic && (
-          <QuizModal topic={selectedTopic.title} isOpen={isQuizOpen} onClose={() => setIsQuizOpen(false)} />
+          <QuizModal topic={selectedTopic.title} isOpen={isQuizOpen} onClose={() => setIsQuizOpen(false)} locale={locale} />
         )}
       </div>
     </AppLayout>

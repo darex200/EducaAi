@@ -1,4 +1,7 @@
+import "server-only";
+
 import { extractJsonPayload } from "@/lib/quiz";
+import { externalFetch } from "@/lib/ai/http";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_MODEL = "gpt-4o-mini";
@@ -35,7 +38,7 @@ export async function chatCompletion(
   if (!apiKey) return null;
 
   try {
-    const response = await fetch(OPENAI_URL, {
+    const response = await externalFetch(OPENAI_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

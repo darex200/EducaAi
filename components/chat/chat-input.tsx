@@ -43,7 +43,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
     : "theme-animate border-slate-200/90 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.06)] focus-within:ring-blue-500/25";
 
   return (
-    <form onSubmit={handleSubmit} className={`border-t px-4 pb-4 pt-3 backdrop-blur-md sm:px-6 ${bar}`}>
+    <form onSubmit={handleSubmit} className={`border-t px-4 pb-4 pt-3 backdrop-blur-md sm:px-8 ${bar}`}>
       {imagePreviewUrl && (
         <div className="mb-3">
           <ImageUpload
@@ -83,7 +83,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
           rows={1}
           placeholder={t("inputPlaceholder")}
           disabled={disabled}
-          className={`theme-animate max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border-0 bg-transparent px-2 py-2.5 text-sm outline-none placeholder:opacity-60 ${
+          className={`theme-animate max-h-40 min-h-[52px] flex-1 resize-none rounded-xl border-0 bg-transparent px-2 py-3 text-sm outline-none placeholder:opacity-60 ${
             isDarkMode ? "text-[var(--dark-text)] placeholder:text-[var(--dark-text-muted)]" : "text-slate-800 placeholder:text-slate-400"
           }`}
         />

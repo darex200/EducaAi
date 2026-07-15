@@ -1,5 +1,4 @@
-import type { AppLocale } from "@/lib/i18n/translations";
-import { DEFAULT_LOCALE, localeInstruction } from "@/lib/i18n/translations";
+import { DEFAULT_LOCALE, localeInstruction, type AppLocale } from "@/lib/i18n/translations";
 
 export type TutorMessage = {
   role: "user" | "assistant";
@@ -45,39 +44,65 @@ function inferTopic(text: string) {
   return "tema general";
 }
 
+function guidedBegin(locale: AppLocale) {
+  const texts = { en: "Let's begin.", es: "Empecemos.", pt: "Vamos começar." } as const;
+  return texts[locale];
+}
+
+function guidedDirectAnswer(locale: AppLocale) {
+  const texts = {
+    en: [
+      "I can help, but I don't provide direct final answers.",
+      "Tell me what you tried and where you got stuck.",
+      "What was the last correct step you completed?",
+    ].join(" "),
+    es: [
+      "Puedo ayudarte, pero no proporciono respuestas finales directas.",
+      "Descríbeme qué intentaste y en qué paso encontraste dificultad.",
+      "¿Cuál fue el último paso correcto que lograste completar?",
+    ].join(" "),
+    pt: [
+      "Posso ajudar, mas não forneço respostas finais diretas.",
+      "Descreva o que você tentou e em qual passo teve dificuldade.",
+      "Qual foi o último passo correto que você conseguiu completar?",
+    ].join(" "),
+  } as const;
+  return texts[locale];
+}
+
+function guidedReplyText(locale: AppLocale, lastUserMessage: string, topicLabel: string) {
+  const texts = {
+    en: [
+      "We'll tackle this through guided learning.",
+      `Your question was: "${lastUserMessage}". It looks like a ${topicLabel} topic. We'll start with one short, verifiable step.`,
+      "Which rule, principle, or formula do you think fits to begin?",
+    ].join(" "),
+    es: [
+      "Abordaremos este problema mediante aprendizaje guiado.",
+      `Tu consulta fue: "${lastUserMessage}". Parece un tema de ${topicLabel}. Iniciaremos con un primer paso corto y verificable.`,
+      "¿Qué regla, principio o fórmula consideras adecuada para comenzar?",
+    ].join(" "),
+    pt: [
+      "Vamos abordar isso com aprendizagem guiada.",
+      `Sua pergunta foi: "${lastUserMessage}". Parece um tópico de ${topicLabel}. Começaremos com um primeiro passo curto e verificável.`,
+      "Qual regra, princípio ou fórmula você acha adequada para começar?",
+    ].join(" "),
+  } as const;
+  return texts[locale];
+}
+
 export function buildGuidedReply(messages: TutorMessage[], context?: TutorStudentContext) {
   const locale = context?.locale ?? DEFAULT_LOCALE;
   const lastUserMessage =
-    [...messages].reverse().find((message) => message.role === "user")?.content ??
-    (locale === "es" ? "Empecemos." : "Let's begin.");
+    [...messages].reverse().find((message) => message.role === "user")?.content ?? guidedBegin(locale);
   const topic = inferTopic(lastUserMessage);
   const askedForDirectAnswer = forbiddenAnswerPatterns.some((pattern) => pattern.test(lastUserMessage));
 
   if (askedForDirectAnswer) {
-    return locale === "es"
-      ? [
-          "Puedo ayudarte, pero no proporciono respuestas finales directas.",
-          "Descríbeme qué intentaste y en qué paso encontraste dificultad.",
-          "¿Cuál fue el último paso correcto que lograste completar?",
-        ].join(" ")
-      : [
-          "I can help, but I don't provide direct final answers.",
-          "Tell me what you tried and where you got stuck.",
-          "What was the last correct step you completed?",
-        ].join(" ");
+    return guidedDirectAnswer(locale);
   }
 
-  return locale === "es"
-    ? [
-        "Abordaremos este problema mediante aprendizaje guiado.",
-        `Tu consulta fue: "${lastUserMessage}". Parece un tema de ${context?.topic || topic}. Iniciaremos con un primer paso corto y verificable.`,
-        "¿Qué regla, principio o fórmula consideras adecuada para comenzar?",
-      ].join(" ")
-    : [
-        "We'll tackle this through guided learning.",
-        `Your question was: "${lastUserMessage}". It looks like a ${context?.topic || topic} topic. We'll start with one short, verifiable step.`,
-        "Which rule, principle, or formula do you think fits to begin?",
-      ].join(" ");
+  return guidedReplyText(locale, lastUserMessage, context?.topic || topic);
 }
 
 export function buildTutorSystemPrompt(context?: TutorStudentContext) {

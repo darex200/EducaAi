@@ -1,3 +1,6 @@
+import type { AppLocale } from "@/lib/i18n/translations";
+import { DEFAULT_LOCALE } from "@/lib/i18n/translations";
+
 export type QuizDifficulty = "basico" | "intermedio" | "avanzado";
 export type QuizQuestionType =
   | "opcion_multiple"
@@ -100,6 +103,7 @@ export function normalizeQuiz(
   topic: string,
   questionCount: number,
   questionType: QuizQuestionType,
+  locale: AppLocale = DEFAULT_LOCALE,
 ): QuizQuestion[] {
   const list = Array.isArray(rawQuiz) ? rawQuiz : [];
   const normalized = list
@@ -125,7 +129,7 @@ export function normalizeQuiz(
   const target = clampQuestionCount(questionCount);
   if (filtered.length >= 3) return filtered.slice(0, target);
 
-  const fallback = buildFallbackQuiz(topic, target, questionType);
+  const fallback = buildFallbackQuiz(topic, target, questionType, locale);
   const merged = [...filtered];
   for (const item of fallback) {
     if (merged.length >= target) break;
@@ -138,7 +142,53 @@ export function buildFallbackQuiz(
   topic: string,
   count: number,
   questionType: QuizQuestionType = "mixto",
+  locale: AppLocale = DEFAULT_LOCALE,
 ): QuizQuestion[] {
+  const copy = {
+    en: {
+      trueFalse: (n: number) => `Question ${n}: ${topic} requires mastering prior concepts. True or false?`,
+      true: "True",
+      false: "False",
+      multiple: (n: number) => `Question ${n}: Which option best describes a key concept of ${topic}?`,
+      options: (topic: string) => [
+        `Core definition of ${topic}`,
+        `Applied example of ${topic}`,
+        `Common mistake when studying ${topic}`,
+        `Unrelated concept`,
+      ],
+      open: (n: number) => `Question ${n}: Explain in your own words an important concept of ${topic}.`,
+      openAnswer: "Valid open answer if it shows understanding of the concept.",
+    },
+    es: {
+      trueFalse: (n: number) => `Pregunta ${n}: ${topic} es un tema que requiere dominar conceptos previos. ¿Verdadero o falso?`,
+      true: "Verdadero",
+      false: "Falso",
+      multiple: (n: number) => `Pregunta ${n}: ¿Cuál opción describe mejor un concepto clave de ${topic}?`,
+      options: (topic: string) => [
+        `Definición central de ${topic}`,
+        `Ejemplo aplicado de ${topic}`,
+        `Error común al estudiar ${topic}`,
+        `Concepto no relacionado`,
+      ],
+      open: (n: number) => `Pregunta ${n}: Explica con tus palabras un concepto importante de ${topic}.`,
+      openAnswer: "Respuesta abierta válida si demuestra comprensión del concepto.",
+    },
+    pt: {
+      trueFalse: (n: number) => `Pergunta ${n}: ${topic} é um tópico que exige dominar conceitos prévios. Verdadeiro ou falso?`,
+      true: "Verdadeiro",
+      false: "Falso",
+      multiple: (n: number) => `Pergunta ${n}: Qual opção descreve melhor um conceito-chave de ${topic}?`,
+      options: (topic: string) => [
+        `Definição central de ${topic}`,
+        `Exemplo aplicado de ${topic}`,
+        `Erro comum ao estudar ${topic}`,
+        `Conceito não relacionado`,
+      ],
+      open: (n: number) => `Pergunta ${n}: Explique com suas palavras um conceito importante de ${topic}.`,
+      openAnswer: "Resposta aberta válida se demonstrar compreensão do conceito.",
+    },
+  }[locale];
+
   const total = clampQuestionCount(count);
   return Array.from({ length: total }).map((_, index) => {
     const n = index + 1;
@@ -147,25 +197,20 @@ export function buildFallbackQuiz(
       return {
         id: `fallback-${n}`,
         type: "verdadero_falso" as const,
-        question: `Pregunta ${n}: ${topic} es un tema que requiere dominar conceptos previos. ¿Verdadero o falso?`,
-        options: ["Verdadero", "Falso"],
-        answer: "Verdadero",
+        question: copy.trueFalse(n),
+        options: [copy.true, copy.false],
+        answer: copy.true,
       };
     }
 
     const useMultiple = questionType === "opcion_multiple" || (questionType === "mixto" && n % 2 === 1);
 
     if (useMultiple) {
-      const options = [
-        `Definición central de ${topic}`,
-        `Ejemplo aplicado de ${topic}`,
-        `Error común al estudiar ${topic}`,
-        `Concepto no relacionado`,
-      ];
+      const options = copy.options(topic);
       return {
         id: `fallback-${n}`,
         type: "opcion_multiple" as const,
-        question: `Pregunta ${n}: ¿Cuál opción describe mejor un concepto clave de ${topic}?`,
+        question: copy.multiple(n),
         options,
         answer: options[0],
       };
@@ -174,8 +219,8 @@ export function buildFallbackQuiz(
     return {
       id: `fallback-${n}`,
       type: "abierta" as const,
-      question: `Pregunta ${n}: Explica con tus palabras un concepto importante de ${topic}.`,
-      answer: "Respuesta abierta válida si demuestra comprensión del concepto.",
+      question: copy.open(n),
+      answer: copy.openAnswer,
     };
   });
 }

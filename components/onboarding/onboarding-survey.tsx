@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLearning } from "@/context/learning-context";
+import { useLanguage } from "@/context/language-context";
 
 const subjectsOptions = ["Matematicas", "Fisica", "Quimica", "Lenguaje", "Biologia", "Historia"];
 const levelOptions = ["primaria", "secundaria", "bachillerato", "universidad"];
@@ -15,6 +16,7 @@ const difficultyOptions: Array<"basico" | "intermedio" | "avanzado"> = [
 export function OnboardingSurvey() {
   const router = useRouter();
   const { setProfile } = useLearning();
+  const { locale } = useLanguage();
   const [step, setStep] = useState(1);
   const [subjects, setSubjects] = useState<string[]>([]);
   const [level, setLevel] = useState("");
@@ -34,7 +36,7 @@ export function OnboardingSurvey() {
     const response = await fetch("/api/onboarding-topics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subjects, level }),
+      body: JSON.stringify({ subjects, level, locale }),
     });
     const data = (await response.json()) as { topics?: string[] };
     const generated = data.topics?.length ? data.topics : ["Introduccion", "Conceptos clave", "Ejercicios"];

@@ -1,25 +1,47 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { LoadingSpinner } from "@/components/loading-spinner";
 
-export function AuthForm() {
+type AuthMode = "login" | "register";
+
+type AuthFormProps = {
+  mode?: AuthMode;
+};
+
+export function AuthForm({ mode = "login" }: AuthFormProps) {
+  const isRegister = mode === "register";
   const router = useRouter();
-  const { register } = useAuth();
+  const { login, register, isDatabaseEnabled } = useAuth();
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const finishAuth = () => {
+    router.replace("/");
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
+
     try {
-      await register(name.trim() || "Estudiante", "", "");
-      router.push("/");
-      router.refresh();
+      if (isDatabaseEnabled) {
+        if (isRegister) {
+          await register(name.trim() || "Estudiante", email.trim(), password);
+        } else {
+          await login(email.trim(), password);
+        }
+      } else {
+        await register(name.trim() || "Estudiante", "", "");
+      }
+      finishAuth();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Ocurrió un error. Intenta de nuevo.",
@@ -28,18 +50,81 @@ export function AuthForm() {
     }
   };
 
+  if (!isDatabaseEnabled) {
+    return (
+      <form onSubmit={handleSubmit} className="card-surface w-full max-w-md space-y-4 p-6">
+        <h1 className="text-2xl font-semibold text-indigo-800">Entra a Educa AI</h1>
+        <p className="text-sm text-slate-600">
+          Solo escribe tu nombre. No necesitas correo ni contraseña.
+        </p>
+        <input
+          className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
+          placeholder="Tu nombre"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          required
+          autoComplete="name"
+        />
+        {error && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="gradient-accent w-full rounded-xl px-4 py-2.5 font-medium transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isSubmitting ? (
+            <span className="inline-flex items-center justify-center">
+              <LoadingSpinner label="Entrando..." />
+            </span>
+          ) : (
+            "Empezar"
+          )}
+        </button>
+      </form>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="card-surface w-full max-w-md space-y-4 p-6">
-      <h1 className="text-2xl font-semibold text-indigo-800">Entra a Educa AI</h1>
+      <h1 className="text-2xl font-semibold text-indigo-800">
+        {isRegister ? "Crea tu cuenta" : "Bienvenido de nuevo"}
+      </h1>
       <p className="text-sm text-slate-600">
-        Solo escribe tu nombre. No necesitas correo ni contraseña.
+        {isRegister
+          ? "Regístrate para guardar tu historial y progreso."
+          : "Inicia sesión con tu correo y contraseña."}
       </p>
+      {isRegister && (
+        <input
+          className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
+          placeholder="Tu nombre"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          required
+          autoComplete="name"
+        />
+      )}
       <input
+        type="email"
         className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
-        placeholder="Tu nombre"
-        value={name}
-        onChange={(event) => setName(event.target.value)}
+        placeholder="Correo electrónico"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
         required
+        autoComplete="email"
+      />
+      <input
+        type="password"
+        className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
+        placeholder="Contraseña (mínimo 6 caracteres)"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        minLength={6}
+        required
+        autoComplete={isRegister ? "new-password" : "current-password"}
       />
       {error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
@@ -53,12 +138,33 @@ export function AuthForm() {
       >
         {isSubmitting ? (
           <span className="inline-flex items-center justify-center">
-            <LoadingSpinner label="Entrando..." />
+            <LoadingSpinner
+              label={isRegister ? "Creando cuenta..." : "Iniciando sesión..."}
+            />
           </span>
+        ) : isRegister ? (
+          "Registrarse"
         ) : (
-          "Empezar"
+          "Iniciar sesión"
         )}
       </button>
+      <p className="text-center text-sm text-slate-600">
+        {isRegister ? (
+          <>
+            ¿Ya tienes cuenta?{" "}
+            <Link href="/login" className="font-medium text-indigo-700">
+              Inicia sesión
+            </Link>
+          </>
+        ) : (
+          <>
+            ¿Primera vez?{" "}
+            <Link href="/register" className="font-medium text-indigo-700">
+              Crear cuenta
+            </Link>
+          </>
+        )}
+      </p>
     </form>
   );
 }

@@ -2,14 +2,17 @@
 
 import { useEffect, useRef } from "react";
 import { useLanguage } from "@/context/language-context";
-import { difficultyLabel } from "@/lib/i18n/translations";
+import { difficultyLabel, type TranslationKey } from "@/lib/i18n/translations";
+import { getLessonBySlug } from "@/lib/lessons";
 
 export type TopicItem = {
   id: string;
   title: string;
   description: string;
   category: string;
+  categoryKey?: TranslationKey;
   difficulty: "basico" | "intermedio" | "avanzado";
+  lessonSlug?: string;
 };
 
 type TopicCardProps = {
@@ -27,7 +30,13 @@ export function TopicCard({
   onSelect,
   registerRef,
 }: TopicCardProps) {
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
+  const localizedLesson = topic.lessonSlug ? getLessonBySlug(topic.lessonSlug, locale) : null;
+  const displayTitle = localizedLesson?.title ?? topic.title;
+  const displayDescription = localizedLesson
+    ? localizedLesson.explanation
+    : t("customTopicDescription", { topic: topic.title });
+  const displayCategory = topic.categoryKey ? t(topic.categoryKey) : topic.category;
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -51,10 +60,10 @@ export function TopicCard({
       }`}
     >
       <p className={`theme-animate text-sm font-semibold transition-colors ${isDarkMode ? "text-[var(--dark-text)]" : "text-slate-900"}`}>
-        {topic.title}
+        {displayTitle}
       </p>
       <p className={`mt-1 line-clamp-2 text-xs leading-5 ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-600"}`}>
-        {topic.description}
+        {displayDescription}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
         <span
@@ -62,7 +71,7 @@ export function TopicCard({
             isDarkMode ? "dark-chip" : "bg-slate-100 text-slate-600"
           }`}
         >
-          {topic.category}
+          {displayCategory}
         </span>
         <span
           className={`theme-animate rounded-md px-2 py-0.5 font-medium transition-colors ${

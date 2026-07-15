@@ -37,6 +37,9 @@ export function LanguageToggle({ isDarkMode = false }: LanguageToggleProps) {
       <button type="button" className={buttonClass(locale === "es")} onClick={() => set("es")}>
         ES
       </button>
+      <button type="button" className={buttonClass(locale === "pt")} onClick={() => set("pt")}>
+        PT
+      </button>
     </div>
   );
 }

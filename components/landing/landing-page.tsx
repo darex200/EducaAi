@@ -288,28 +288,6 @@ export function LandingPage() {
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Redes sociales</p>
             <div className="flex items-center gap-3">
               <a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                aria-label="LinkedIn"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                  <path d="M4.98 3.5C4.98 4.88 3.86 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8h4V23h-4V8zm7.5 0h3.8v2.05h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.77 2.65 4.77 6.1V23h-4v-6.75c0-1.61-.03-3.68-2.24-3.68-2.24 0-2.58 1.75-2.58 3.55V23h-4V8z" />
-                </svg>
-              </a>
-              <a
-                href="https://x.com"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                aria-label="X"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                  <path d="M18.9 2H22l-6.8 7.8L23 22h-6.7l-4.2-5.5L7.5 22H2.4l7.3-8.4L1 2h6.9l3.8 5.1L18.9 2zm-1.2 18h1.7L7.1 4H5.3l12.4 16z" />
-                </svg>
-              </a>
-              <a
                 href="https://instagram.com/educa.ai.ed"
                 target="_blank"
                 rel="noreferrer"

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { authConfig } from "@/auth.config";
 import { ensureGoogleUser, isGoogleAuthConfigured } from "@/lib/auth/google-user";
 import { cleanEnvValue } from "@/lib/auth/env";
+import { getAuthSecret } from "@/lib/auth/config";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -55,6 +56,7 @@ if (isGoogleAuthConfigured()) {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  secret: getAuthSecret(),
   providers,
   callbacks: {
     ...authConfig.callbacks,

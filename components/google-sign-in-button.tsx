@@ -113,10 +113,10 @@ export function GoogleSignInButton({
         return;
       }
       if (result?.url) {
-        window.location.href = result.url;
+        window.location.assign(result.url);
         return;
       }
-      onError?.(authErrorMessage("Default", locale));
+      window.location.assign(`/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`);
     } catch {
       onError?.(authErrorMessage("OAuthSignin", locale));
     } finally {

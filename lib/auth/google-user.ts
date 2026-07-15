@@ -1,9 +1,11 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { cleanEnvValue } from "@/lib/auth/env";
 
 export function isGoogleAuthConfigured() {
   return Boolean(
-    process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim(),
+    cleanEnvValue(process.env.GOOGLE_CLIENT_ID) &&
+      cleanEnvValue(process.env.GOOGLE_CLIENT_SECRET),
   );
 }
 

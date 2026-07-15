@@ -137,7 +137,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
       )}
       {showGoogleAuth ? (
         <>
-          <GoogleSignInButton label={t("authGoogleSignIn")} />
+          <GoogleSignInButton label={t("authGoogleSignIn")} onError={setError} />
           <div className="relative py-1 text-center text-xs text-slate-500">
             <span className="relative z-10 bg-white px-2">{t("authOrContinueWith")}</span>
             <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-slate-200" />

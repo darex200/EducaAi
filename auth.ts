@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { authConfig } from "@/auth.config";
 import { ensureGoogleUser, isGoogleAuthConfigured } from "@/lib/auth/google-user";
+import { cleanEnvValue } from "@/lib/auth/env";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -45,8 +46,9 @@ const providers: Provider[] = [
 if (isGoogleAuthConfigured()) {
   providers.push(
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: cleanEnvValue(process.env.GOOGLE_CLIENT_ID),
+      clientSecret: cleanEnvValue(process.env.GOOGLE_CLIENT_SECRET),
+      allowDangerousEmailAccountLinking: true,
     }),
   );
 }

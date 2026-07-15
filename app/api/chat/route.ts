@@ -26,6 +26,7 @@ import {
   hasOpenAIKey,
   type OpenAIChatMessage,
 } from "@/lib/ai/openai";
+import { validateChatImageDataUrl } from "@/lib/security/upload-validation-server";
 
 type ChatRequestBody = {
   messages?: TutorMessage[];
@@ -147,6 +148,15 @@ export async function POST(request: Request) {
     const context = body.context;
     const uiLocale = normalizeLocale(context?.locale);
     const latestMessages = messages.slice(-12);
+
+    for (const message of latestMessages) {
+      if (!message.imageDataUrl) continue;
+      const imageValidation = validateChatImageDataUrl(message.imageDataUrl);
+      if (!imageValidation.ok) {
+        return NextResponse.json({ error: imageValidation.error }, { status: 415 });
+      }
+    }
+
     const locale = detectLocaleFromMessages(latestMessages, uiLocale);
     const lastUserMessage = [...latestMessages]
       .reverse()

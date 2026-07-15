@@ -14,6 +14,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
   const { t } = useLanguage();
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const imagePreviewUrl = useMemo(() => {
     if (!imageFile) return null;
@@ -44,6 +45,11 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className={`border-t px-4 pb-4 pt-3 backdrop-blur-md sm:px-8 ${bar}`}>
+      {uploadError ? (
+        <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {uploadError}
+        </p>
+      ) : null}
       {imagePreviewUrl && (
         <div className="mb-3">
           <ImageUpload
@@ -51,6 +57,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
             imagePreviewUrl={imagePreviewUrl}
             disabled={disabled}
             onFileChange={setImageFile}
+            onValidationError={setUploadError}
             inputId="chat-image-upload-main"
             includeInput={false}
             showButton={false}
@@ -65,6 +72,7 @@ export function ChatInput({ onSend, disabled, isDarkMode }: ChatInputProps) {
           imagePreviewUrl={null}
           disabled={disabled}
           onFileChange={setImageFile}
+          onValidationError={setUploadError}
           inputId="chat-image-upload-main"
           includeInput
           showButton

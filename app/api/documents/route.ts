@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getAuthUserId } from "@/lib/api-auth";
+import { getAuthUserId, isDbConfigured } from "@/lib/api-auth";
 import { hasOpenAIKey } from "@/lib/ai/openai";
 import {
   analyzeImageDocument,
@@ -10,8 +10,7 @@ import {
 } from "@/lib/ai/documents";
 import { uploadDocument } from "@/lib/supabase";
 import { bumpStudySession } from "@/lib/study-session";
-
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+import { validateDocumentUpload } from "@/lib/security/upload-validation";
 
 async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
   const { extractText, getDocumentProxy } = await import("unpdf");
@@ -73,35 +72,32 @@ export async function POST(request: Request) {
       );
     }
 
+    const userId = await getAuthUserId();
+    if (isDbConfigured() && !userId) {
+      return NextResponse.json(
+        { error: "Inicia sesión para subir documentos." },
+        { status: 401 },
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
-    const topic = String(formData.get("topic") ?? "").trim();
+    const topic = String(formData.get("topic") ?? "").trim().slice(0, 120);
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No se recibió ningún archivo." }, { status: 400 });
     }
-    if (file.size > MAX_FILE_BYTES) {
-      return NextResponse.json(
-        { error: "El archivo supera el límite de 10 MB." },
-        { status: 413 },
-      );
-    }
-
-    const contentType = file.type || "application/octet-stream";
-    const isImage = contentType.startsWith("image/");
-    const isPdf = contentType === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-
-    if (!isImage && !isPdf) {
-      return NextResponse.json(
-        { error: "Formato no soportado. Sube una imagen o un PDF." },
-        { status: 415 },
-      );
-    }
 
     const buffer = await file.arrayBuffer();
+    const validation = validateDocumentUpload(file, buffer);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 415 });
+    }
+
+    const { kind, contentType, safeName } = validation;
     let analysis: DocumentAnalysis | null = null;
 
-    if (isImage) {
+    if (kind === "image") {
       const base64 = Buffer.from(buffer).toString("base64");
       const dataUrl = `data:${contentType};base64,${base64}`;
       analysis = await analyzeImageDocument(dataUrl, { topic });
@@ -113,7 +109,7 @@ export async function POST(request: Request) {
           { status: 422 },
         );
       }
-      analysis = await analyzePdfText(text, { topic, fileName: file.name });
+      analysis = await analyzePdfText(text, { topic, fileName: safeName });
     }
 
     if (!analysis) {
@@ -123,15 +119,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const markdown = buildAnalysisMarkdown(file.name, analysis);
+    const markdown = buildAnalysisMarkdown(safeName, analysis);
 
-    const userId = await getAuthUserId();
     let documentId: string | null = null;
     if (userId) {
       documentId = await persistDocument({
         userId,
-        fileName: file.name,
-        kind: isImage ? "image" : "pdf",
+        fileName: safeName,
+        kind,
         contentType,
         buffer,
         analysis,

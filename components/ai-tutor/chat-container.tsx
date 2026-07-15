@@ -22,6 +22,7 @@ import {
   findStoredTopicIndex,
   useLocalizedGeneratedTopics,
 } from "@/hooks/use-localized-generated-topics";
+import { detectFileKind, validateDocumentUpload } from "@/lib/security/upload-validation";
 
 const ACTIVE_CONVERSATION_KEY = "educa-ai-active-conversation";
 
@@ -377,16 +378,31 @@ export function ChatContainer() {
   const handleAnalyzeDocument = async (file: File) => {
     setIsAnalyzingDocument(true);
     setError(null);
+
+    const buffer = await file.arrayBuffer();
+    const basicValidation = validateDocumentUpload(file, buffer);
+    if (!basicValidation.ok) {
+      setError(basicValidation.error);
+      setIsAnalyzingDocument(false);
+      return;
+    }
+
+    if (detectFileKind(buffer) !== basicValidation.kind) {
+      setError("El contenido del archivo no coincide con su extensión.");
+      setIsAnalyzingDocument(false);
+      return;
+    }
+
     const placeholder: TutorMessage = {
       id: `user-${crypto.randomUUID()}`,
       role: "user",
-      content: t("documentUploaded", { name: file.name }),
+      content: t("documentUploaded", { name: basicValidation.safeName }),
     };
     setMessages((current) => [...current, placeholder]);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", file, basicValidation.safeName);
       formData.append("topic", activeTopicTitle);
       const response = await fetch("/api/documents", {
         method: "POST",
@@ -476,7 +492,7 @@ export function ChatContainer() {
         <input
           ref={documentInputRef}
           type="file"
-          accept="image/*,application/pdf"
+          accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.jpg,.jpeg,.png,.webp,.gif,.pdf"
           className="hidden"
           onChange={(event) => {
             const file = event.target.files?.[0];

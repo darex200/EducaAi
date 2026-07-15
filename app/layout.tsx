@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
 import { LanguageProvider } from "@/context/language-context";
 import { LearningProvider } from "@/context/learning-context";
+import { UserMenu } from "@/components/user-menu";
 import "katex/dist/katex.min.css";
 
 const inter = Inter({
@@ -29,7 +30,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <LanguageProvider>
           <AuthProvider>
-            <LearningProvider>{children}</LearningProvider>
+            <LearningProvider>
+              {children}
+              <UserMenu />
+            </LearningProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>

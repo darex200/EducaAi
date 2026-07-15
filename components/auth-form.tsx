@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
-import { isClientGoogleAuthEnabled } from "@/lib/demo-mode";
 import { useLanguage } from "@/context/language-context";
 
 type AuthMode = "login" | "register";
@@ -20,7 +19,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
   const router = useRouter();
   const { login, register, isDatabaseEnabled } = useAuth();
   const { t } = useLanguage();
-  const showGoogleAuth = isDatabaseEnabled && isClientGoogleAuthEnabled();
+  const showGoogleAuth = isDatabaseEnabled;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

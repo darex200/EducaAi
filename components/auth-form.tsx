@@ -5,6 +5,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { isClientGoogleAuthEnabled } from "@/lib/demo-mode";
+import { useLanguage } from "@/context/language-context";
 
 type AuthMode = "login" | "register";
 
@@ -16,6 +19,8 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
   const isRegister = mode === "register";
   const router = useRouter();
   const { login, register, isDatabaseEnabled } = useAuth();
+  const { t } = useLanguage();
+  const showGoogleAuth = isDatabaseEnabled && isClientGoogleAuthEnabled();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +28,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const finishAuth = () => {
-    router.replace("/");
+    router.replace("/tutor");
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -131,6 +136,15 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
           {error}
         </p>
       )}
+      {showGoogleAuth ? (
+        <>
+          <GoogleSignInButton label={t("authGoogleSignIn")} />
+          <div className="relative py-1 text-center text-xs text-slate-500">
+            <span className="relative z-10 bg-white px-2">{t("authOrContinueWith")}</span>
+            <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-slate-200" />
+          </div>
+        </>
+      ) : null}
       <button
         type="submit"
         disabled={isSubmitting}

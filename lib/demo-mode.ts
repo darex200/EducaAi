@@ -13,3 +13,7 @@ export function isDatabaseEnabled() {
 export function isClientDatabaseEnabled() {
   return process.env.NEXT_PUBLIC_APP_MODE === "database";
 }
+
+export function isClientGoogleAuthEnabled() {
+  return process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
+}

@@ -119,6 +119,82 @@ export const translations = {
     levelHighSchool: "High school",
     levelUniversity: "University",
     applyTopic: "Apply",
+    landingNavHome: "Home",
+    landingNavFeatures: "Features",
+    landingNavHowItWorks: "How it works",
+    landingNavMission: "Our mission",
+    landingNavContact: "Contact",
+    landingSignIn: "Sign in",
+    landingOpenMenu: "Open menu",
+    landingCloseMenu: "Close menu",
+    landingHeroBadge: "Responsible AI in education",
+    landingHeroTitle: "Learn better with an AI tutor that",
+    landingHeroTitleHighlight: "thinks with you",
+    landingHeroSubtitle:
+      "EducaAI is an educational platform that combines intelligent tutoring, adaptive practice, and progress tracking to strengthen your understanding — not replace your effort.",
+    landingStartLearning: "Start learning",
+    landingExplore: "Explore the platform",
+    landingAboutLabel: "What is EducaAI?",
+    landingAboutTitle: "Technology in service of deep learning",
+    landingAboutText:
+      "EducaAI supports students throughout their academic journey with intelligent tools that promote reflection, autonomy, and critical thinking.",
+    landingAboutPurposeTitle: "AI with an educational purpose",
+    landingAboutPurposeText:
+      "We use artificial intelligence responsibly: as support to understand, practice, and organize study — never as a shortcut to avoid real learning.",
+    landingAboutCriticalTitle: "Critical thinking first",
+    landingAboutCriticalText:
+      "The tutor guides with questions, examples, and feedback so you build your own conclusions and lasting cognitive strengths.",
+    landingFeaturesLabel: "Key features",
+    landingFeaturesTitle: "Everything you need to study with clarity",
+    landingFeaturesSubtitle:
+      "Tools designed to support every stage: from your first question to tracking your academic progress.",
+    landingFeatureTutorTitle: "Personalized AI tutor",
+    landingFeatureTutorDesc:
+      "Chat with an academic assistant that adapts explanations to your age, level, and study goals.",
+    landingFeatureAdaptiveTitle: "Adaptive learning",
+    landingFeatureAdaptiveDesc:
+      "The system detects your strengths and gaps to suggest study paths that evolve with you.",
+    landingFeatureProgressTitle: "Progress tracking",
+    landingFeatureProgressDesc:
+      "See your progress by topic, study streaks, and metrics that show how you improve over time.",
+    landingFeatureQuizTitle: "Quiz generation",
+    landingFeatureQuizDesc:
+      "Practice with dynamic quizzes aligned to your subject and difficulty, with immediate feedback.",
+    landingFeatureStepsTitle: "Step-by-step explanations",
+    landingFeatureStepsDesc:
+      "Understand complex concepts with sequential breakdowns, examples, and questions that encourage reasoning.",
+    landingFeatureDocsTitle: "Document analysis",
+    landingFeatureDocsDesc:
+      "Upload images or PDFs to get contextual help with exercises, notes, and class materials.",
+    landingHowLabel: "How it works",
+    landingHowTitle: "Four steps to start today",
+    landingHowSubtitle: "A simple, clear flow to integrate EducaAI into your study routine.",
+    landingStep1Title: "Choose a subject",
+    landingStep1Desc: "Select the area you want to study or define your own topics of interest.",
+    landingStep2Title: "Talk to the tutor",
+    landingStep2Desc: "Ask questions, request explanations, or upload materials for personalized guidance.",
+    landingStep3Title: "Complete activities",
+    landingStep3Desc: "Practice with guided exercises and quizzes that reinforce what you learned.",
+    landingStep4Title: "Review your progress",
+    landingStep4Desc: "Check metrics, topic mastery, and recommendations to keep improving.",
+    landingMissionLabel: "Our mission",
+    landingMissionTitle: "Democratize access to personalized and ethical education",
+    landingMissionText1:
+      "We believe artificial intelligence can expand learning opportunities when used with transparency, pedagogical judgment, and respect for the student's process.",
+    landingMissionText2:
+      "Our vision is to build an educational community where technology fuels curiosity, analysis, and academic confidence — with real impact in the classroom and in self-directed study.",
+    landingFooterDesc:
+      "Educational platform with an adaptive AI tutor, progress tracking, and tools to study with method and responsibility.",
+    landingContact: "Contact",
+    landingSocial: "Social media",
+    landingRights: "All rights reserved.",
+    landingHeroCardTutor: "AI Tutor",
+    landingHeroCardTutorDesc: "Socratic step-by-step guidance",
+    landingHeroCardProgress: "Progress",
+    landingHeroCardAdaptive: "Adaptive",
+    landingHeroCardAdaptiveDesc: "Adjusts pace to your level",
+    authGoogleSignIn: "Continue with Google",
+    authOrContinueWith: "or continue with email",
   },
   es: {
     assistantTitle: "Asistente de aprendizaje guiado",
@@ -234,6 +310,82 @@ export const translations = {
     levelHighSchool: "Bachillerato",
     levelUniversity: "Universidad",
     applyTopic: "Aplicar",
+    landingNavHome: "Inicio",
+    landingNavFeatures: "Características",
+    landingNavHowItWorks: "Cómo funciona",
+    landingNavMission: "Nuestra misión",
+    landingNavContact: "Contacto",
+    landingSignIn: "Iniciar sesión",
+    landingOpenMenu: "Abrir menú",
+    landingCloseMenu: "Cerrar menú",
+    landingHeroBadge: "Educación con IA responsable",
+    landingHeroTitle: "Aprende mejor con un tutor de IA que",
+    landingHeroTitleHighlight: "piensa contigo",
+    landingHeroSubtitle:
+      "EducaAI es una plataforma educativa que combina tutoría inteligente, práctica adaptativa y seguimiento de progreso para fortalecer tu comprensión — no para reemplazar tu esfuerzo.",
+    landingStartLearning: "Comenzar a aprender",
+    landingExplore: "Explorar la plataforma",
+    landingAboutLabel: "¿Qué es EducaAI?",
+    landingAboutTitle: "Tecnología al servicio del aprendizaje profundo",
+    landingAboutText:
+      "EducaAI nace para acompañar a estudiantes en su proceso académico con herramientas inteligentes que promueven la reflexión, la autonomía y el pensamiento crítico.",
+    landingAboutPurposeTitle: "IA con propósito educativo",
+    landingAboutPurposeText:
+      "Utilizamos inteligencia artificial de forma responsable: como apoyo para comprender, practicar y organizar el estudio, nunca como atajo para evitar el aprendizaje real.",
+    landingAboutCriticalTitle: "Pensamiento crítico primero",
+    landingAboutCriticalText:
+      "El tutor guía con preguntas, ejemplos y retroalimentación para que construyas tus propias conclusiones y fortalezas cognitivas duraderas.",
+    landingFeaturesLabel: "Características principales",
+    landingFeaturesTitle: "Todo lo que necesitas para estudiar con claridad",
+    landingFeaturesSubtitle:
+      "Herramientas diseñadas para acompañarte en cada etapa: desde la primera duda hasta el seguimiento de tu evolución académica.",
+    landingFeatureTutorTitle: "Tutor de IA personalizado",
+    landingFeatureTutorDesc:
+      "Conversa con un asistente académico que adapta explicaciones a tu edad, nivel y objetivos de estudio.",
+    landingFeatureAdaptiveTitle: "Aprendizaje adaptativo",
+    landingFeatureAdaptiveDesc:
+      "El sistema detecta tus fortalezas y brechas para proponer rutas de estudio que evolucionan contigo.",
+    landingFeatureProgressTitle: "Seguimiento del progreso",
+    landingFeatureProgressDesc:
+      "Visualiza tu avance por temas, rachas de estudio y métricas que muestran cómo mejoras con el tiempo.",
+    landingFeatureQuizTitle: "Generación de cuestionarios",
+    landingFeatureQuizDesc:
+      "Practica con quizzes dinámicos alineados a tu materia y dificultad, con retroalimentación inmediata.",
+    landingFeatureStepsTitle: "Explicaciones paso a paso",
+    landingFeatureStepsDesc:
+      "Comprende conceptos complejos con desgloses secuenciales, ejemplos y preguntas que fomentan el razonamiento.",
+    landingFeatureDocsTitle: "Análisis de documentos",
+    landingFeatureDocsDesc:
+      "Sube imágenes o PDFs para recibir ayuda contextualizada sobre ejercicios, apuntes y material de clase.",
+    landingHowLabel: "Cómo funciona",
+    landingHowTitle: "Cuatro pasos para empezar hoy",
+    landingHowSubtitle: "Un flujo simple y claro para integrar EducaAI en tu rutina de estudio sin fricción.",
+    landingStep1Title: "Elige una materia",
+    landingStep1Desc: "Selecciona el área que quieres estudiar o define tus propios temas de interés.",
+    landingStep2Title: "Habla con el tutor",
+    landingStep2Desc: "Plantea dudas, pide explicaciones o sube material para recibir orientación personalizada.",
+    landingStep3Title: "Resuelve actividades",
+    landingStep3Desc: "Practica con ejercicios guiados y cuestionarios que refuerzan lo aprendido.",
+    landingStep4Title: "Revisa tu progreso",
+    landingStep4Desc: "Consulta métricas, dominio por tema y recomendaciones para seguir mejorando.",
+    landingMissionLabel: "Nuestra misión",
+    landingMissionTitle: "Democratizar el acceso a una educación personalizada y ética",
+    landingMissionText1:
+      "Creemos que la inteligencia artificial puede ampliar oportunidades de aprendizaje cuando se usa con transparencia, criterio pedagógico y respeto por el proceso del estudiante.",
+    landingMissionText2:
+      "Nuestra visión es construir una comunidad educativa donde la tecnología impulse la curiosidad, el análisis y la confianza académica — con impacto real en el aula y en el estudio autónomo.",
+    landingFooterDesc:
+      "Plataforma educativa con tutor de IA adaptativo, seguimiento de progreso y herramientas para estudiar con método y responsabilidad.",
+    landingContact: "Contacto",
+    landingSocial: "Redes sociales",
+    landingRights: "Todos los derechos reservados.",
+    landingHeroCardTutor: "Tutor IA",
+    landingHeroCardTutorDesc: "Guía socrática paso a paso",
+    landingHeroCardProgress: "Progreso",
+    landingHeroCardAdaptive: "Adaptativo",
+    landingHeroCardAdaptiveDesc: "Ajusta el ritmo a tu nivel",
+    authGoogleSignIn: "Continuar con Google",
+    authOrContinueWith: "o continúa con correo",
   },
   pt: {
     assistantTitle: "Assistente de aprendizagem guiada",
@@ -351,6 +503,82 @@ export const translations = {
     levelHighSchool: "Ensino médio",
     levelUniversity: "Universidade",
     applyTopic: "Aplicar",
+    landingNavHome: "Início",
+    landingNavFeatures: "Recursos",
+    landingNavHowItWorks: "Como funciona",
+    landingNavMission: "Nossa missão",
+    landingNavContact: "Contato",
+    landingSignIn: "Entrar",
+    landingOpenMenu: "Abrir menu",
+    landingCloseMenu: "Fechar menu",
+    landingHeroBadge: "Educação com IA responsável",
+    landingHeroTitle: "Aprenda melhor com um tutor de IA que",
+    landingHeroTitleHighlight: "pensa com você",
+    landingHeroSubtitle:
+      "EducaAI é uma plataforma educativa que combina tutoria inteligente, prática adaptativa e acompanhamento de progresso para fortalecer sua compreensão — não para substituir seu esforço.",
+    landingStartLearning: "Começar a aprender",
+    landingExplore: "Explorar a plataforma",
+    landingAboutLabel: "O que é EducaAI?",
+    landingAboutTitle: "Tecnologia a serviço da aprendizagem profunda",
+    landingAboutText:
+      "EducaAI nasce para acompanhar estudantes em seu processo acadêmico com ferramentas inteligentes que promovem reflexão, autonomia e pensamento crítico.",
+    landingAboutPurposeTitle: "IA com propósito educacional",
+    landingAboutPurposeText:
+      "Usamos inteligência artificial de forma responsável: como apoio para compreender, praticar e organizar o estudo, nunca como atalho para evitar o aprendizado real.",
+    landingAboutCriticalTitle: "Pensamento crítico em primeiro lugar",
+    landingAboutCriticalText:
+      "O tutor guia com perguntas, exemplos e feedback para que você construa suas próprias conclusões e forças cognitivas duradouras.",
+    landingFeaturesLabel: "Recursos principais",
+    landingFeaturesTitle: "Tudo o que você precisa para estudar com clareza",
+    landingFeaturesSubtitle:
+      "Ferramentas projetadas para acompanhar cada etapa: da primeira dúvida ao acompanhamento da sua evolução acadêmica.",
+    landingFeatureTutorTitle: "Tutor de IA personalizado",
+    landingFeatureTutorDesc:
+      "Converse com um assistente acadêmico que adapta explicações à sua idade, nível e objetivos de estudo.",
+    landingFeatureAdaptiveTitle: "Aprendizagem adaptativa",
+    landingFeatureAdaptiveDesc:
+      "O sistema detecta seus pontos fortes e lacunas para propor rotas de estudo que evoluem com você.",
+    landingFeatureProgressTitle: "Acompanhamento do progresso",
+    landingFeatureProgressDesc:
+      "Visualize seu avanço por tópicos, sequências de estudo e métricas que mostram como você melhora com o tempo.",
+    landingFeatureQuizTitle: "Geração de questionários",
+    landingFeatureQuizDesc:
+      "Pratique com quizzes dinâmicos alinhados à sua matéria e dificuldade, com feedback imediato.",
+    landingFeatureStepsTitle: "Explicações passo a passo",
+    landingFeatureStepsDesc:
+      "Compreenda conceitos complexos com desdobramentos sequenciais, exemplos e perguntas que incentivam o raciocínio.",
+    landingFeatureDocsTitle: "Análise de documentos",
+    landingFeatureDocsDesc:
+      "Envie imagens ou PDFs para receber ajuda contextualizada sobre exercícios, anotações e material de aula.",
+    landingHowLabel: "Como funciona",
+    landingHowTitle: "Quatro passos para começar hoje",
+    landingHowSubtitle: "Um fluxo simples e claro para integrar EducaAI à sua rotina de estudo.",
+    landingStep1Title: "Escolha uma matéria",
+    landingStep1Desc: "Selecione a área que deseja estudar ou defina seus próprios tópicos de interesse.",
+    landingStep2Title: "Fale com o tutor",
+    landingStep2Desc: "Tire dúvidas, peça explicações ou envie materiais para orientação personalizada.",
+    landingStep3Title: "Resolva atividades",
+    landingStep3Desc: "Pratique com exercícios guiados e questionários que reforçam o que você aprendeu.",
+    landingStep4Title: "Revise seu progresso",
+    landingStep4Desc: "Consulte métricas, domínio por tópico e recomendações para continuar melhorando.",
+    landingMissionLabel: "Nossa missão",
+    landingMissionTitle: "Democratizar o acesso a uma educação personalizada e ética",
+    landingMissionText1:
+      "Acreditamos que a inteligência artificial pode ampliar oportunidades de aprendizagem quando usada com transparência, critério pedagógico e respeito pelo processo do estudante.",
+    landingMissionText2:
+      "Nossa visão é construir uma comunidade educacional onde a tecnologia impulsione a curiosidade, a análise e a confiança acadêmica — com impacto real na sala de aula e no estudo autônomo.",
+    landingFooterDesc:
+      "Plataforma educativa com tutor de IA adaptativo, acompanhamento de progresso e ferramentas para estudar com método e responsabilidade.",
+    landingContact: "Contato",
+    landingSocial: "Redes sociais",
+    landingRights: "Todos os direitos reservados.",
+    landingHeroCardTutor: "Tutor IA",
+    landingHeroCardTutorDesc: "Orientação socrática passo a passo",
+    landingHeroCardProgress: "Progresso",
+    landingHeroCardAdaptive: "Adaptativo",
+    landingHeroCardAdaptiveDesc: "Ajusta o ritmo ao seu nível",
+    authGoogleSignIn: "Continuar com Google",
+    authOrContinueWith: "ou continue com e-mail",
   },
 } as const;
 

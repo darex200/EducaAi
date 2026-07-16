@@ -68,21 +68,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return true;
         } catch (error) {
           console.error("[auth] google signIn error:", error);
-          return false;
+          // AccessDenied sugiere modo prueba de Google; un fallo de BD
+          // debe mapearse a un error de servidor más claro.
+          return "/login?error=ServerError";
         }
       }
       return true;
     },
     async jwt({ token, user, account }) {
       if (account?.provider === "google" && user?.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: user.email.toLowerCase() },
-          select: { id: true, name: true, email: true },
-        });
-        if (dbUser) {
-          token.sub = dbUser.id;
-          token.name = dbUser.name;
-          token.email = dbUser.email;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email.toLowerCase() },
+            select: { id: true, name: true, email: true },
+          });
+          if (dbUser) {
+            token.sub = dbUser.id;
+            token.name = dbUser.name;
+            token.email = dbUser.email;
+          }
+        } catch (error) {
+          console.error("[auth] google jwt lookup error:", error);
         }
       } else if (user?.id) {
         token.sub = user.id;

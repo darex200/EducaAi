@@ -52,6 +52,20 @@ function topicIdFromTitle(title: string, index: number) {
   return `topic-${slug || index}`;
 }
 
+function resolveTopicIdFromProfile(
+  profileTopic: string,
+  generatedTopics: string[],
+  topics: TopicItem[],
+) {
+  if (!profileTopic) return "";
+
+  const storedIndex = findStoredTopicIndex(generatedTopics, profileTopic);
+  if (storedIndex >= 0) return `topic-custom-${storedIndex}`;
+
+  const match = topics.find((topic) => topicMatches(topic.title, profileTopic));
+  return match?.id ?? "";
+}
+
 
 function isLegacyWelcomeMessage(message: TutorMessage) {
   return (
@@ -72,7 +86,7 @@ function toDataUrl(file: File) {
 
 export function ChatContainer() {
   const { user, logout } = useAuth();
-  const { profile } = useLearning();
+  const { profile, setProfile } = useLearning();
   const { locale, t } = useLanguage();
   const [messages, setMessages] = useState<TutorMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -134,6 +148,8 @@ export function ChatContainer() {
     [locale, localizedGeneratedTopics, profile.difficulty],
   );
   const [selectedTopicId, setSelectedTopicId] = useState("");
+  const userPickedTopicRef = useRef(false);
+  const lastSyncedProfileTopicRef = useRef(profile.topic);
   const endRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
@@ -235,10 +251,19 @@ export function ChatContainer() {
 
   const handleSelectTopic = (topicId: string) => {
     if (topicId === selectedTopicId) return;
+    userPickedTopicRef.current = true;
     setSelectedTopicId(topicId);
     clearChat();
     setContent(null);
     setShowGuidedPractice(false);
+
+    const nextTopic = dynamicTopics.find((topic) => topic.id === topicId);
+    if (nextTopic) {
+      setProfile({
+        topic: nextTopic.title,
+        difficulty: nextTopic.difficulty,
+      });
+    }
   };
 
   useEffect(() => {
@@ -264,13 +289,23 @@ export function ChatContainer() {
   }, [locale]);
 
   useEffect(() => {
-    if (!profile.topic && !selectedTopicId) return;
-    const storedIndex = findStoredTopicIndex(profile.generatedTopics, profile.topic);
-    if (storedIndex >= 0) {
-      const nextId = `topic-custom-${storedIndex}`;
-      if (selectedTopicId !== nextId) setSelectedTopicId(nextId);
+    const profileTopicChanged = lastSyncedProfileTopicRef.current !== profile.topic;
+    if (profileTopicChanged) {
+      lastSyncedProfileTopicRef.current = profile.topic;
+      userPickedTopicRef.current = false;
     }
-  }, [locale, localizedGeneratedTopics, profile.generatedTopics, profile.topic, selectedTopicId]);
+
+    if (userPickedTopicRef.current) return;
+
+    const nextTopicId = resolveTopicIdFromProfile(
+      profile.topic,
+      profile.generatedTopics,
+      dynamicTopics,
+    );
+    if (nextTopicId) {
+      setSelectedTopicId(nextTopicId);
+    }
+  }, [profile.topic, profile.generatedTopics, dynamicTopics]);
 
   const handleSend = async ({
     text,

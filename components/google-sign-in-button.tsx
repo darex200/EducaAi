@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { signIn } from "next-auth/react";
 import { useLanguage } from "@/context/language-context";
 
 type GoogleSignInButtonProps = {
@@ -59,6 +60,16 @@ function authErrorMessage(code: string, locale: "en" | "es" | "pt") {
       es: "Falló el callback de Google. Verifica que AUTH_URL y la redirect URI coincidan con tu dominio personalizado.",
       pt: "Falha no callback do Google. Verifique se AUTH_URL e a redirect URI correspondem ao seu domínio personalizado.",
     },
+    ServerError: {
+      en: "Could not complete Google sign-in on the server. Check the database connection and try again.",
+      es: "No se pudo completar el inicio con Google en el servidor. Revisa la conexión a la base de datos e intenta de nuevo.",
+      pt: "Não foi possível concluir o login com Google no servidor. Verifique a conexão com o banco e tente novamente.",
+    },
+    Unreachable: {
+      en: "Could not reach the auth server. Reload the page and try again.",
+      es: "No se pudo conectar con el servidor de autenticación. Recarga la página e intenta de nuevo.",
+      pt: "Não foi possível conectar ao servidor de autenticação. Recarregue a página e tente novamente.",
+    },
     Default: {
       en: "Google sign-in failed. Try again or use email and password.",
       es: "No se pudo iniciar sesión con Google. Intenta de nuevo o usa correo y contraseña.",
@@ -82,15 +93,28 @@ export function GoogleSignInButton({
 
     async function checkProviders() {
       try {
-        const response = await fetch("/api/auth/providers");
-        if (!response.ok) throw new Error("providers");
+        const response = await fetch("/api/auth/providers", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) {
+          if (!cancelled) onError?.(authErrorMessage("Unreachable", locale));
+          return;
+        }
+
+        const contentType = response.headers.get("content-type") ?? "";
+        if (!contentType.includes("application/json")) {
+          if (!cancelled) onError?.(authErrorMessage("Unreachable", locale));
+          return;
+        }
+
         const providers = (await response.json()) as Record<string, unknown>;
         if (!cancelled && !providers.google) {
           onError?.(authErrorMessage("Configuration", locale));
         }
       } catch {
         if (!cancelled) {
-          onError?.(authErrorMessage("Configuration", locale));
+          onError?.(authErrorMessage("Unreachable", locale));
         }
       }
     }
@@ -101,18 +125,37 @@ export function GoogleSignInButton({
     };
   }, [locale, onError]);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     setIsLoading(true);
     onError?.(null);
-    window.location.assign(
-      `/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`,
-    );
+
+    try {
+      const result = await signIn("google", { callbackUrl, redirect: false });
+      if (result?.error) {
+        onError?.(authErrorMessage(result.error, locale));
+        return;
+      }
+      if (result?.url) {
+        window.location.assign(result.url);
+        return;
+      }
+      // Fallback si Auth.js no devolvió URL (p. ej. redirección directa).
+      window.location.assign(
+        `/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      );
+    } catch {
+      onError?.(authErrorMessage("OAuthSignin", locale));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <button
       type="button"
-      onClick={handleClick}
+      onClick={() => {
+        void handleClick();
+      }}
       disabled={isLoading}
       className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70"
     >

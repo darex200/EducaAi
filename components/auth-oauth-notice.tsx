@@ -30,6 +30,11 @@ function authErrorMessage(code: string, locale: "en" | "es" | "pt") {
       es: "Falló el callback de Google. Verifica que AUTH_URL y la redirect URI coincidan con https://www.educa-ai.net.",
       pt: "Falha no callback do Google. Verifique se AUTH_URL e a redirect URI correspondem a https://www.educa-ai.net.",
     },
+    ServerError: {
+      en: "Could not complete Google sign-in on the server. Check the database connection and try again.",
+      es: "No se pudo completar el inicio con Google en el servidor. Revisa la conexión a la base de datos e intenta de nuevo.",
+      pt: "Não foi possível concluir o login com Google no servidor. Verifique a conexão com o banco e tente novamente.",
+    },
     Default: {
       en: "Google sign-in failed. Try again or use email and password.",
       es: "No se pudo iniciar sesión con Google. Intenta de nuevo o usa correo y contraseña.",

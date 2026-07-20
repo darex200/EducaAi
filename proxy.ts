@@ -22,6 +22,13 @@ function redirectToCanonicalDomain(request: NextRequest) {
   if (currentHost === canonicalHost) return null;
   if (!currentHost.endsWith(".vercel.app")) return null;
 
+  // No redirigir el callback OAuth: perdería code/state/cookies de sesión
+  // intermedias y provoca OAuthCallback / errores de conexión con Google.
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith("/api/auth/callback/")) {
+    return null;
+  }
+
   const redirectUrl = request.nextUrl.clone();
   redirectUrl.protocol = "https:";
   redirectUrl.host = canonicalHost;

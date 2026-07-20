@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import type { TutorMessage } from "@/components/ai-tutor/types";
+import { BrandLogo } from "@/components/brand-logo";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { useLanguage } from "@/context/language-context";
 
@@ -47,18 +49,32 @@ export function ChatWindow({
   return (
     <section className={`flex h-full flex-col overflow-hidden rounded-2xl border ${shell}`}>
       <header
-        className={`theme-animate shrink-0 border-b px-4 py-3 sm:px-6 ${
+        className={`theme-animate flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6 ${
           isDarkMode ? "dark-header" : "border-slate-100/80 bg-white/50"
         }`}
       >
-        <p className="text-sm font-semibold tracking-tight">{t("assistantTitle")}</p>
-        <p className={`theme-animate mt-0.5 text-xs ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
-          <span className={isDarkMode ? "text-[var(--dark-text-soft)]" : "text-slate-600"}>{topicLabel}</span>
-          <span className="mx-1.5 opacity-40">·</span>
-          {levelLabel}
-          <span className="mx-1.5 opacity-40">·</span>
-          {difficultyLabel}
-        </p>
+        <Link
+          href="/"
+          className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-1.5 py-1 text-sm font-semibold tracking-tight transition ${
+            isDarkMode
+              ? "text-slate-100 hover:bg-white/5"
+              : "text-slate-900 hover:bg-slate-100/80"
+          }`}
+          aria-label="EducaAI — ir a la página principal"
+        >
+          <BrandLogo className="h-7 w-7" />
+          <span>EducaAI</span>
+        </Link>
+        <div className="min-w-0 text-right">
+          <p className="truncate text-sm font-semibold tracking-tight">{t("assistantTitle")}</p>
+          <p className={`theme-animate mt-0.5 truncate text-xs ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
+            <span className={isDarkMode ? "text-[var(--dark-text-soft)]" : "text-slate-600"}>{topicLabel}</span>
+            <span className="mx-1.5 opacity-40">·</span>
+            {levelLabel}
+            <span className="mx-1.5 opacity-40">·</span>
+            {difficultyLabel}
+          </p>
+        </div>
       </header>
 
       {showTopicSelector && (

@@ -166,15 +166,21 @@ export function Sidebar({
       }`}
     >
       <div className={`theme-animate shrink-0 border-b px-4 py-4 ${isDarkMode ? "border-[var(--dark-border)]" : "border-slate-100"}`}>
-        <div className="flex items-center gap-3">
+        <Link
+          href="/"
+          className={`flex items-center gap-3 rounded-xl px-1 py-0.5 transition ${
+            isDarkMode ? "hover:bg-white/5" : "hover:bg-slate-50"
+          }`}
+          aria-label="EducaAI — ir a la página principal"
+        >
           <BrandLogo className="h-10 w-10 drop-shadow-[0_8px_14px_rgba(37,99,235,0.25)]" />
           <div>
-            <p className="text-base font-semibold tracking-tight">Educa AI</p>
+            <p className="text-base font-semibold tracking-tight">EducaAI</p>
             <p className={`text-[11px] ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
               {t("guidedTutor")}
             </p>
           </div>
-        </div>
+        </Link>
       </div>
 
       <div className={`sidebar-scroll-wrap ${scrollWrapClass} min-h-0 flex-1`}>

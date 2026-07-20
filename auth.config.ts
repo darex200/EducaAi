@@ -29,6 +29,13 @@ export const authConfig = {
       const isLoggedIn = Boolean(auth?.user);
       const pathname = nextUrl.pathname;
 
+      // Las rutas API gestionan su propia auth. Bloquear /api/auth/* aquí
+      // rompe OAuth de Google (providers, signin, callback) para usuarios
+      // sin sesión y provoca el error "no configurado en el servidor".
+      if (pathname.startsWith("/api/")) {
+        return true;
+      }
+
       if (isPublicPath(pathname)) {
         if (isLoggedIn && (pathname.startsWith("/login") || pathname.startsWith("/register"))) {
           return Response.redirect(new URL("/tutor", nextUrl));

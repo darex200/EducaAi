@@ -32,6 +32,7 @@ model LearningProfile {
   subjects        String[]
   goals           String?
   currentTopic    String   @default("")
+  currentTopicId  String   @default("")
   difficulty      String   @default("basico")
   generatedTopics String[]
   strengths       String[]

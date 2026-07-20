@@ -7,6 +7,7 @@ const patchSchema = z.object({
   subjects: z.array(z.string().trim().max(80)).max(20).optional(),
   level: z.string().trim().max(40).optional(),
   topic: z.string().trim().max(120).optional(),
+  topicId: z.string().trim().max(80).optional(),
   difficulty: z.enum(["basico", "intermedio", "avanzado"]).optional(),
   generatedTopics: z.array(z.string().trim().max(120)).max(30).optional(),
   goals: z.string().trim().max(400).optional(),
@@ -43,6 +44,7 @@ async function loadProfilePayload(userId: string) {
       subjects: profile.subjects,
       level: user?.academicLevel ?? "",
       topic: profile.currentTopic,
+      topicId: profile.currentTopicId,
       difficulty: profile.difficulty as "basico" | "intermedio" | "avanzado",
       generatedTopics: profile.generatedTopics,
       goals: profile.goals ?? "",
@@ -81,7 +83,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
     }
 
-    const { subjects, level, topic, difficulty, generatedTopics, goals, birthYear } =
+    const { subjects, level, topic, topicId, difficulty, generatedTopics, goals, birthYear } =
       parsed.data;
 
     await prisma.$transaction([
@@ -91,6 +93,7 @@ export async function PATCH(request: Request) {
           userId,
           subjects: subjects ?? [],
           currentTopic: topic ?? "",
+          currentTopicId: topicId ?? "",
           difficulty: difficulty ?? "basico",
           generatedTopics: generatedTopics ?? [],
           goals,
@@ -98,6 +101,7 @@ export async function PATCH(request: Request) {
         update: {
           ...(subjects !== undefined ? { subjects } : {}),
           ...(topic !== undefined ? { currentTopic: topic } : {}),
+          ...(topicId !== undefined ? { currentTopicId: topicId } : {}),
           ...(difficulty !== undefined ? { difficulty } : {}),
           ...(generatedTopics !== undefined ? { generatedTopics } : {}),
           ...(goals !== undefined ? { goals } : {}),

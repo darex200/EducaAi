@@ -8,6 +8,7 @@ import {
   findStoredTopicIndex,
   useLocalizedGeneratedTopics,
 } from "@/hooks/use-localized-generated-topics";
+import { resolveCustomTopicId } from "@/lib/topics/selection";
 
 type TopicSelectorProps = {
   onApply: (topic: string) => void;
@@ -67,7 +68,12 @@ export function TopicSelector({ onApply }: TopicSelectorProps) {
       <div className="mt-3 flex justify-end">
         <button
           onClick={() => {
-            setProfile({ topic, difficulty });
+            const topicId = resolveCustomTopicId(topic, profile.generatedTopics);
+            setProfile({
+              topic,
+              topicId: topicId || profile.topicId,
+              difficulty,
+            });
             onApply(topic);
           }}
           className="gradient-accent rounded-lg px-4 py-2 text-sm font-semibold"

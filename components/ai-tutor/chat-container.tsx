@@ -16,56 +16,20 @@ import type { TutorMessage } from "@/components/ai-tutor/types";
 import { wantsImageGeneration } from "@/lib/ai/image-intent";
 import { difficultyLabel, academicLevelLabel } from "@/lib/i18n/translations";
 import { topicCategoryKeys, type TopicCategoryKey } from "@/lib/i18n/locale-ai";
-import { getLessonBySlug, getLessons, resolveTopicDisplayTitle } from "@/lib/lessons";
+import { getLessonBySlug, getLessons } from "@/lib/lessons";
 import type { TopicItem } from "@/components/chat/topic-card";
 import {
-  findStoredTopicIndex,
   useLocalizedGeneratedTopics,
 } from "@/hooks/use-localized-generated-topics";
 import { detectFileKind, validateDocumentUpload } from "@/lib/security/upload-validation";
+import {
+  customTopicId,
+  resolveCustomTopicId,
+  resolveTopicId,
+  resolveTopicIdFromLabel,
+} from "@/lib/topics/selection";
 
 const ACTIVE_CONVERSATION_KEY = "educa-ai-active-conversation";
-
-function normalizeTopicName(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function topicMatches(left: string, right: string) {
-  const normalizedLeft = normalizeTopicName(left);
-  const normalizedRight = normalizeTopicName(right);
-
-  if (!normalizedLeft || !normalizedRight) return false;
-  return (
-    normalizedLeft === normalizedRight ||
-    normalizedLeft.includes(normalizedRight) ||
-    normalizedRight.includes(normalizedLeft)
-  );
-}
-
-function topicIdFromTitle(title: string, index: number) {
-  const slug = normalizeTopicName(title).replace(/\s+/g, "-");
-  return `topic-${slug || index}`;
-}
-
-function resolveTopicIdFromProfile(
-  profileTopic: string,
-  generatedTopics: string[],
-  topics: TopicItem[],
-) {
-  if (!profileTopic) return "";
-
-  const storedIndex = findStoredTopicIndex(generatedTopics, profileTopic);
-  if (storedIndex >= 0) return `topic-custom-${storedIndex}`;
-
-  const match = topics.find((topic) => topicMatches(topic.title, profileTopic));
-  return match?.id ?? "";
-}
-
 
 function isLegacyWelcomeMessage(message: TutorMessage) {
   return (
@@ -147,9 +111,16 @@ export function ChatContainer() {
     },
     [locale, localizedGeneratedTopics, profile.difficulty],
   );
-  const [selectedTopicId, setSelectedTopicId] = useState("");
-  const userPickedTopicRef = useRef(false);
-  const lastSyncedProfileTopicRef = useRef(profile.topic);
+  const selectedTopicId = useMemo(
+    () =>
+      resolveTopicId({
+        topicId: profile.topicId,
+        topicLabel: profile.topic,
+        generatedTopics: profile.generatedTopics,
+        topics: dynamicTopics,
+      }),
+    [profile.topicId, profile.topic, profile.generatedTopics, dynamicTopics],
+  );
   const endRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
@@ -180,39 +151,64 @@ export function ChatContainer() {
     }
   }, []);
 
-  const loadConversation = useCallback(async (id: string) => {
-    try {
-      const response = await fetch(`/api/conversations/${id}`);
-      if (!response.ok) return false;
-      const data = (await response.json()) as {
-        conversation?: {
-          id: string;
-          messages: Array<{
+  const loadConversation = useCallback(
+    async (id: string) => {
+      try {
+        const response = await fetch(`/api/conversations/${id}`);
+        if (!response.ok) return false;
+        const data = (await response.json()) as {
+          conversation?: {
             id: string;
-            role: "user" | "assistant";
-            content: string;
-            imageUrl?: string | null;
-          }>;
+            topic: string;
+            messages: Array<{
+              id: string;
+              role: "user" | "assistant";
+              content: string;
+              imageUrl?: string | null;
+            }>;
+          };
         };
-      };
-      if (!data.conversation) return false;
-      const loaded: TutorMessage[] = data.conversation.messages
-        .map((message) => ({
-          id: message.id,
-          role: message.role,
-          content: message.content,
-          imageDataUrl: message.role === "user" ? message.imageUrl ?? undefined : undefined,
-          generatedImageUrl: message.role === "assistant" ? message.imageUrl ?? undefined : undefined,
-        }))
-        .filter((message) => !isLegacyWelcomeMessage(message));
-      setMessages(loaded);
-      setConversationId(id);
-      setError(null);
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+        if (!data.conversation) return false;
+        const loaded: TutorMessage[] = data.conversation.messages
+          .map((message) => ({
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            imageDataUrl: message.role === "user" ? message.imageUrl ?? undefined : undefined,
+            generatedImageUrl: message.role === "assistant" ? message.imageUrl ?? undefined : undefined,
+          }))
+          .filter((message) => !isLegacyWelcomeMessage(message));
+        setMessages(loaded);
+        setConversationId(id);
+        setError(null);
+        setContent(null);
+        setShowGuidedPractice(false);
+
+        if (data.conversation.topic) {
+          const topicId = resolveTopicIdFromLabel(
+            data.conversation.topic,
+            profile.generatedTopics,
+            dynamicTopics,
+          );
+          if (topicId) {
+            const nextTopic = dynamicTopics.find((topic) => topic.id === topicId);
+            if (nextTopic) {
+              setProfile({
+                topicId,
+                topic: nextTopic.title,
+                difficulty: nextTopic.difficulty,
+              });
+            }
+          }
+        }
+
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [dynamicTopics, profile.generatedTopics, setProfile],
+  );
 
   // Limpia caché antigua del chat en localStorage (ya no se usa).
   useEffect(() => {
@@ -249,22 +245,23 @@ export function ChatContainer() {
     setShowGuidedPractice(false);
   }, []);
 
-  const handleSelectTopic = (topicId: string) => {
-    if (topicId === selectedTopicId) return;
-    userPickedTopicRef.current = true;
-    setSelectedTopicId(topicId);
-    clearChat();
-    setContent(null);
-    setShowGuidedPractice(false);
+  const handleSelectTopic = useCallback(
+    (topicId: string) => {
+      if (!topicId || topicId === selectedTopicId) return;
+      const nextTopic = dynamicTopics.find((topic) => topic.id === topicId);
+      if (!nextTopic) return;
 
-    const nextTopic = dynamicTopics.find((topic) => topic.id === topicId);
-    if (nextTopic) {
       setProfile({
+        topicId,
         topic: nextTopic.title,
         difficulty: nextTopic.difficulty,
       });
-    }
-  };
+      clearChat();
+      setContent(null);
+      setShowGuidedPractice(false);
+    },
+    [clearChat, dynamicTopics, selectedTopicId, setProfile],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -289,23 +286,24 @@ export function ChatContainer() {
   }, [locale]);
 
   useEffect(() => {
-    const profileTopicChanged = lastSyncedProfileTopicRef.current !== profile.topic;
-    if (profileTopicChanged) {
-      lastSyncedProfileTopicRef.current = profile.topic;
-      userPickedTopicRef.current = false;
-    }
-
-    if (userPickedTopicRef.current) return;
-
-    const nextTopicId = resolveTopicIdFromProfile(
+    if (profile.topicId) return;
+    const legacyTopicId = resolveTopicIdFromLabel(
       profile.topic,
       profile.generatedTopics,
       dynamicTopics,
     );
-    if (nextTopicId) {
-      setSelectedTopicId(nextTopicId);
-    }
-  }, [profile.topic, profile.generatedTopics, dynamicTopics]);
+    if (!legacyTopicId) return;
+    const topic = dynamicTopics.find((item) => item.id === legacyTopicId);
+    if (!topic) return;
+    setProfile({ topicId: legacyTopicId, topic: topic.title });
+  }, [profile.topicId, profile.topic, profile.generatedTopics, dynamicTopics, setProfile]);
+
+  useEffect(() => {
+    if (!profile.topicId) return;
+    const topic = dynamicTopics.find((item) => item.id === profile.topicId);
+    if (!topic || topic.title === profile.topic) return;
+    setProfile({ topic: topic.title });
+  }, [profile.topicId, profile.topic, dynamicTopics, setProfile]);
 
   const handleSend = async ({
     text,
@@ -552,11 +550,9 @@ export function ChatContainer() {
             <TopicSelector
               onApply={(topic) => {
                 setShowTopicSelector(false);
-                const customIndex = localizedGeneratedTopics.findIndex((item) => item === topic);
                 const topicId =
-                  customIndex >= 0
-                    ? `topic-custom-${customIndex}`
-                    : dynamicTopics.find((item) => topicMatches(item.title, topic))?.id ?? "";
+                  resolveCustomTopicId(topic, profile.generatedTopics) ||
+                  resolveTopicIdFromLabel(topic, profile.generatedTopics, dynamicTopics);
                 if (topicId) handleSelectTopic(topicId);
               }}
             />

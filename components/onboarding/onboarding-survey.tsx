@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLearning } from "@/context/learning-context";
 import { useLanguage } from "@/context/language-context";
+import { customTopicId } from "@/lib/topics/selection";
 
 const subjectsOptions = ["Matematicas", "Fisica", "Quimica", "Lenguaje", "Biologia", "Historia"];
 const levelOptions = ["primaria", "secundaria", "bachillerato", "universidad"];
@@ -188,7 +189,15 @@ export function OnboardingSurvey() {
             <button
               type="button"
               onClick={() => {
-                setProfile({ subjects, level, generatedTopics: topics, topic, difficulty });
+                const topicIndex = topics.indexOf(topic);
+                setProfile({
+                  subjects,
+                  level,
+                  generatedTopics: topics,
+                  topic,
+                  topicId: topicIndex >= 0 ? customTopicId(topicIndex) : "",
+                  difficulty,
+                });
                 router.push("/dashboard/ai-tutor");
               }}
               className="gradient-accent rounded-lg px-4 py-2 text-sm font-semibold"

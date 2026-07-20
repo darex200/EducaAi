@@ -16,6 +16,7 @@ export type StudentProfile = {
   subjects: string[];
   level: string;
   topic: string;
+  topicId: string;
   difficulty: "basico" | "intermedio" | "avanzado";
   generatedTopics: string[];
 };
@@ -24,6 +25,7 @@ const defaultProfile: StudentProfile = {
   subjects: [],
   level: "",
   topic: "",
+  topicId: "",
   difficulty: "basico",
   generatedTopics: [],
 };

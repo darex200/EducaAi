@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { AppLayout } from "@/components/chat/app-layout";
 import { Sidebar, type ConversationSummary } from "@/components/chat/sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
@@ -49,6 +50,8 @@ function toDataUrl(file: File) {
 }
 
 export function ChatContainer() {
+  const pathname = usePathname();
+  const embedded = pathname.startsWith("/dashboard");
   const { user, logout } = useAuth();
   const { profile, setProfile } = useLearning();
   const { locale, t } = useLanguage();
@@ -494,7 +497,8 @@ export function ChatContainer() {
   return (
     <AppLayout
       isDarkMode={isDarkMode}
-      sidebar={
+      embedded={embedded}
+      renderSidebar={({ closeMobileNav }) => (
         <Sidebar
           isDarkMode={isDarkMode}
           userName={user?.name}
@@ -518,8 +522,9 @@ export function ChatContainer() {
           }}
           onDeleteConversation={(id) => void handleDeleteConversation(id)}
           onLogout={() => void logout()}
+          onMobileClose={closeMobileNav}
         />
-      }
+      )}
     >
       <div className="h-full min-h-0">
         <input

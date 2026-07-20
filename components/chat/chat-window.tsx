@@ -47,15 +47,15 @@ export function ChatWindow({
     : "glass-panel chat-surface-light theme-animate border-white/70 text-slate-900";
 
   return (
-    <section className={`flex h-full flex-col overflow-hidden rounded-2xl border ${shell}`}>
+    <section className={`flex h-full flex-col overflow-hidden border lg:rounded-2xl ${shell}`}>
       <header
-        className={`theme-animate flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6 ${
+        className={`theme-animate flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5 sm:gap-3 sm:px-6 sm:py-3 ${
           isDarkMode ? "dark-header" : "border-slate-100/80 bg-white/50"
         }`}
       >
         <Link
           href="/"
-          className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-1.5 py-1 text-sm font-semibold tracking-tight transition ${
+          className={`hidden shrink-0 items-center gap-2 rounded-lg px-1.5 py-1 text-sm font-semibold tracking-tight transition lg:inline-flex ${
             isDarkMode
               ? "text-slate-100 hover:bg-white/5"
               : "text-slate-900 hover:bg-slate-100/80"
@@ -65,14 +65,16 @@ export function ChatWindow({
           <BrandLogo className="h-7 w-7" />
           <span>EducaAI</span>
         </Link>
-        <div className="min-w-0 text-right">
+        <div className="min-w-0 flex-1 text-left lg:text-right">
           <p className="truncate text-sm font-semibold tracking-tight">{t("assistantTitle")}</p>
-          <p className={`theme-animate mt-0.5 truncate text-xs ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
-            <span className={isDarkMode ? "text-[var(--dark-text-soft)]" : "text-slate-600"}>{topicLabel}</span>
-            <span className="mx-1.5 opacity-40">·</span>
-            {levelLabel}
-            <span className="mx-1.5 opacity-40">·</span>
-            {difficultyLabel}
+          <p className={`theme-animate mt-0.5 text-xs leading-snug ${isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-500"}`}>
+            <span className={`block truncate sm:inline ${isDarkMode ? "text-[var(--dark-text-soft)]" : "text-slate-600"}`}>
+              {topicLabel}
+            </span>
+            <span className="mx-1.5 hidden opacity-40 sm:inline">·</span>
+            <span className="hidden sm:inline">{levelLabel}</span>
+            <span className="mx-1.5 hidden opacity-40 sm:inline">·</span>
+            <span className="hidden md:inline">{difficultyLabel}</span>
           </p>
         </div>
       </header>
@@ -83,7 +85,7 @@ export function ChatWindow({
         </div>
       )}
       {toolsPanel && (
-        <div className={`chat-scroll theme-animate shrink-0 max-h-[40vh] overflow-y-auto border-b px-4 py-3 ${isDarkMode ? "dark-panel" : "border-slate-100 bg-slate-50/50"}`}>
+        <div className={`chat-scroll theme-animate max-h-[32vh] shrink-0 overflow-y-auto border-b px-3 py-3 sm:max-h-[40vh] sm:px-4 ${isDarkMode ? "dark-panel" : "border-slate-100 bg-slate-50/50"}`}>
           {toolsPanel}
         </div>
       )}
@@ -91,7 +93,7 @@ export function ChatWindow({
       <div
         ref={bodyRef}
         onScroll={onBodyScroll}
-        className={`chat-scroll chat-scroll-smooth theme-animate flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-8 sm:py-6 ${
+        className={`chat-scroll chat-scroll-smooth theme-animate flex-1 space-y-3 overflow-y-auto px-3 py-4 sm:space-y-4 sm:px-8 sm:py-6 ${
           isDarkMode ? "chat-scroll-dark chat-body-dark" : "bg-gradient-to-b from-slate-50/30 to-transparent"
         }`}
       >

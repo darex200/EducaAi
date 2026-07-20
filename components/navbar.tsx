@@ -15,12 +15,12 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/90 bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2 text-lg font-semibold tracking-tight text-slate-900">
           <BrandLogo className="h-8 w-8" />
-          <span>Educa AI</span>
+          <span className="truncate">Educa AI</span>
         </Link>
-        <nav className="flex items-center gap-3 text-sm">
+        <nav className="hidden items-center gap-2 text-sm sm:flex sm:gap-3">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -37,11 +37,6 @@ export function Navbar() {
                 }`}
               >
                 {item.label}
-                <span
-                  className={`absolute -bottom-1 left-2 right-2 h-0.5 rounded-full bg-blue-600 transition-all duration-200 ${
-                    isActive ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"
-                  }`}
-                />
               </Link>
             );
           })}

@@ -3,7 +3,7 @@ import { ChatContainer } from "@/components/ai-tutor/chat-container";
 export default function AITutorPage() {
   return (
     <div className="space-y-4">
-      <header className="card-surface border-slate-200 p-6">
+      <header className="card-surface hidden border-slate-200 p-6 md:block">
         <div className="flex items-start gap-4">
           <div className="rounded-xl bg-blue-50 p-2 text-blue-600">
             <svg
@@ -34,7 +34,9 @@ export default function AITutorPage() {
           </div>
         </div>
       </header>
-      <ChatContainer />
+      <div className="-mx-1 lg:mx-0">
+        <ChatContainer />
+      </div>
     </div>
   );
 }

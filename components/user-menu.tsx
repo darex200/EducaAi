@@ -19,6 +19,7 @@ export function UserMenu() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const isChatRoute = pathname === "/tutor" || pathname.startsWith("/dashboard/ai-tutor");
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +41,14 @@ export function UserMenu() {
   if (isLoading) return null;
 
   return (
-    <div ref={rootRef} className="fixed bottom-5 right-5 z-[70] sm:bottom-6 sm:right-6">
+    <div
+      ref={rootRef}
+      className={`user-menu-fab fixed right-4 z-[70] sm:right-6 ${
+        isChatRoute
+          ? "bottom-[calc(max(5.5rem,env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6"
+          : "bottom-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-6"
+      }`}
+    >
       {open ? (
         <div className="mb-3 w-56 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.14)] backdrop-blur-xl">
           {user ? (
@@ -99,7 +107,7 @@ export function UserMenu() {
         aria-label={user ? t("userMenuLabel") : t("landingSignIn")}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/80 bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 text-sm font-bold text-white shadow-[0_12px_30px_rgba(37,99,235,0.35)] transition hover:scale-[1.03] hover:shadow-[0_16px_36px_rgba(37,99,235,0.42)] active:scale-[0.98]"
+        className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/80 bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 text-sm font-bold text-white shadow-[0_12px_30px_rgba(37,99,235,0.35)] transition hover:scale-[1.03] hover:shadow-[0_16px_36px_rgba(37,99,235,0.42)] active:scale-[0.98] sm:h-14 sm:w-14"
       >
         {user?.name ? (
           <span>{getInitials(user.name)}</span>

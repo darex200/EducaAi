@@ -31,6 +31,18 @@ body {
   font-family: var(--font-inter), "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 1023px) {
+  .user-menu-fab {
+    bottom: calc(max(0.75rem, env(safe-area-inset-bottom)) + 0.25rem);
+  }
+
+  .chat-input-bar {
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
 }
 
 * {

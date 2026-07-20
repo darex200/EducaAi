@@ -35,6 +35,7 @@ type SidebarProps = {
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
   onLogout: () => void;
+  onMobileClose?: () => void;
 };
 
 function ToolButton({
@@ -113,11 +114,20 @@ export function Sidebar({
   onSelectConversation,
   onDeleteConversation,
   onLogout,
+  onMobileClose,
 }: SidebarProps) {
   const { locale, t } = useLanguage();
   const sectionLabel = isDarkMode ? "text-[var(--dark-text-muted)]" : "text-slate-400";
   const sidebarScrollRef = useRef<HTMLDivElement>(null);
   const topicCardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const afterMobileAction = useCallback(
+    (action: () => void) => {
+      action();
+      onMobileClose?.();
+    },
+    [onMobileClose],
+  );
 
   const registerTopicRef = useCallback((id: string, el: HTMLButtonElement | null) => {
     topicCardRefs.current[id] = el;
@@ -145,12 +155,12 @@ export function Sidebar({
   }, [selectedTopicId, scrollTopicIntoView]);
 
   const handleSelectFromDropdown = (topicId: string) => {
-    onSelectTopic(topicId);
+    afterMobileAction(() => onSelectTopic(topicId));
     window.setTimeout(() => scrollTopicIntoView(topicId), 80);
   };
 
   const handleSelectFromCard = (topicId: string) => {
-    onSelectTopic(topicId);
+    afterMobileAction(() => onSelectTopic(topicId));
     scrollTopicIntoView(topicId);
   };
 
@@ -187,7 +197,7 @@ export function Sidebar({
         <div ref={sidebarScrollRef} className={`${scrollClass} h-full px-3 py-4`}>
           <button
             type="button"
-            onClick={onNewChat}
+            onClick={() => afterMobileAction(onNewChat)}
             className="btn-hover-primary relative mb-5 w-full overflow-hidden rounded-xl bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_18px_rgba(37,99,235,0.38)]"
           >
             {t("newConversation")}
@@ -198,16 +208,20 @@ export function Sidebar({
               {t("aiTools")}
             </p>
             <div className="space-y-1.5">
-              <ToolButton isDarkMode={isDarkMode} onClick={onGenerateQuiz}>
+              <ToolButton isDarkMode={isDarkMode} onClick={() => afterMobileAction(onGenerateQuiz)}>
                 {t("generateQuiz")}
               </ToolButton>
-              <ToolButton isDarkMode={isDarkMode} onClick={onExploreContent}>
+              <ToolButton isDarkMode={isDarkMode} onClick={() => afterMobileAction(onExploreContent)}>
                 {t("exploreContent")}
               </ToolButton>
-              <ToolButton isDarkMode={isDarkMode} onClick={onToggleGuidedPractice} active={practiceEnabled}>
+              <ToolButton
+                isDarkMode={isDarkMode}
+                onClick={() => afterMobileAction(onToggleGuidedPractice)}
+                active={practiceEnabled}
+              >
                 {t("guidedPractice")}
               </ToolButton>
-              <ToolButton isDarkMode={isDarkMode} onClick={onAnalyzeDocument}>
+              <ToolButton isDarkMode={isDarkMode} onClick={() => afterMobileAction(onAnalyzeDocument)}>
                 {isAnalyzingDocument ? t("analyzingDocument") : t("analyzeDocument")}
               </ToolButton>
             </div>
@@ -236,7 +250,7 @@ export function Sidebar({
                     >
                       <button
                         type="button"
-                        onClick={() => onSelectConversation(conversation.id)}
+                        onClick={() => afterMobileAction(() => onSelectConversation(conversation.id))}
                         className="min-w-0 flex-1 text-left"
                         title={conversation.title}
                       >
@@ -318,6 +332,7 @@ export function Sidebar({
         <div className="grid grid-cols-2 gap-1.5">
           <Link
             href="/dashboard/progress"
+            onClick={onMobileClose}
             className={`btn-hover-lift theme-animate rounded-xl border px-3 py-2 text-center text-xs font-medium ${
               isDarkMode
                 ? "btn-hover-lift-dark dark-btn-surface"
@@ -328,6 +343,7 @@ export function Sidebar({
           </Link>
           <Link
             href="/dashboard/plan"
+            onClick={onMobileClose}
             className={`btn-hover-lift theme-animate rounded-xl border px-3 py-2 text-center text-xs font-medium ${
               isDarkMode
                 ? "btn-hover-lift-dark dark-btn-surface"
@@ -337,10 +353,10 @@ export function Sidebar({
             {t("studyPlan")}
           </Link>
         </div>
-        <FooterButton isDarkMode={isDarkMode} onClick={onChooseTopic}>
+        <FooterButton isDarkMode={isDarkMode} onClick={() => afterMobileAction(onChooseTopic)}>
           {t("changeTopic")}
         </FooterButton>
-        <FooterButton isDarkMode={isDarkMode} onClick={onToggleTheme}>
+        <FooterButton isDarkMode={isDarkMode} onClick={() => afterMobileAction(onToggleTheme)}>
           {isDarkMode ? t("lightMode") : t("darkMode")}
         </FooterButton>
         <div className="flex items-center gap-2 pt-1">
@@ -349,7 +365,7 @@ export function Sidebar({
           </p>
           <button
             type="button"
-            onClick={onLogout}
+            onClick={() => afterMobileAction(() => void onLogout())}
             className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium transition ${
               isDarkMode
                 ? "text-[var(--dark-text-muted)] hover:bg-red-500/12 hover:text-red-400"

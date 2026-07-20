@@ -40,7 +40,7 @@ export function MessageBubble({ message, isDarkMode }: MessageBubbleProps) {
         {isUser ? t("userAvatar") : t("assistantAvatar")}
       </div>
       <div
-        className={`max-w-[min(96%,56rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+        className={`max-w-[min(92%,56rem)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed sm:max-w-[min(96%,56rem)] sm:px-4 sm:py-3 ${
           isUser ? userBubble : assistantBubble
         }`}
       >

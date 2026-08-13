@@ -24,7 +24,6 @@ import {
 } from "@/hooks/use-localized-generated-topics";
 import { detectFileKind, validateDocumentUpload } from "@/lib/security/upload-validation";
 import {
-  customTopicId,
   resolveCustomTopicId,
   resolveTopicId,
   resolveTopicIdFromLabel,
@@ -68,14 +67,18 @@ export function ChatContainer() {
   const [showGuidedPractice, setShowGuidedPractice] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [isAnalyzingDocument, setIsAnalyzingDocument] = useState(false);
-  const [content, setContent] = useState<{
-    title?: string;
-    summary?: string;
-    examples?: string[];
-    references?: string[];
-    articles?: string[];
-    explanations?: string[];
+  const [contentEntry, setContentEntry] = useState<{
+    locale: typeof locale;
+    data: {
+      title?: string;
+      summary?: string;
+      examples?: string[];
+      references?: string[];
+      articles?: string[];
+      explanations?: string[];
+    };
   } | null>(null);
+  const content = contentEntry?.locale === locale ? contentEntry.data : null;
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const localizedGeneratedTopics = useLocalizedGeneratedTopics({
@@ -184,7 +187,7 @@ export function ChatContainer() {
         setMessages(loaded);
         setConversationId(id);
         setError(null);
-        setContent(null);
+        setContentEntry(null);
         setShowGuidedPractice(false);
 
         if (data.conversation.topic) {
@@ -244,7 +247,7 @@ export function ChatContainer() {
     setMessages([]);
     setConversationId(null);
     setError(null);
-    setContent(null);
+    setContentEntry(null);
     setShowGuidedPractice(false);
   }, []);
 
@@ -260,7 +263,7 @@ export function ChatContainer() {
         difficulty: nextTopic.difficulty,
       });
       clearChat();
-      setContent(null);
+      setContentEntry(null);
       setShowGuidedPractice(false);
     },
     [clearChat, dynamicTopics, selectedTopicId, setProfile],
@@ -285,10 +288,6 @@ export function ChatContainer() {
   }, [selectedTopicId]);
 
   useEffect(() => {
-    setContent(null);
-  }, [locale]);
-
-  useEffect(() => {
     if (profile.topicId) return;
     const legacyTopicId = resolveTopicIdFromLabel(
       profile.topic,
@@ -307,6 +306,32 @@ export function ChatContainer() {
     if (!topic || topic.title === profile.topic) return;
     setProfile({ topic: topic.title });
   }, [profile.topicId, profile.topic, dynamicTopics, setProfile]);
+
+  useEffect(() => {
+    if (selectedTopicId || !dynamicTopics.length) return;
+    const first = dynamicTopics[0];
+    setProfile({
+      topicId: first.id,
+      topic: first.title,
+      difficulty: first.difficulty,
+    });
+  }, [selectedTopicId, dynamicTopics, setProfile]);
+
+  const requireTopic = useCallback(() => {
+    if (selectedTopic) return selectedTopic;
+    if (dynamicTopics[0]) {
+      const first = dynamicTopics[0];
+      setProfile({
+        topicId: first.id,
+        topic: first.title,
+        difficulty: first.difficulty,
+      });
+      return first;
+    }
+    setError(t("selectTopicFirst"));
+    setShowTopicSelector(true);
+    return null;
+  }, [dynamicTopics, selectedTopic, setProfile, t]);
 
   const handleSend = async ({
     text,
@@ -395,7 +420,7 @@ export function ChatContainer() {
     setMessages([]);
     setConversationId(null);
     setError(null);
-    setContent(null);
+    setContentEntry(null);
     setShowGuidedPractice(false);
   };
 
@@ -424,7 +449,7 @@ export function ChatContainer() {
     }
 
     if (detectFileKind(buffer) !== basicValidation.kind) {
-      setError("El contenido del archivo no coincide con su extensión.");
+      setError(t("documentMimeMismatch"));
       setIsAnalyzingDocument(false);
       return;
     }
@@ -467,23 +492,35 @@ export function ChatContainer() {
   };
 
   const exploreContent = async () => {
-    if (!selectedTopic) return;
+    const topic = requireTopic();
+    if (!topic) return;
     setIsContentLoading(true);
     const res = await fetch("/api/topic-tools", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         mode: "content",
-        topic: selectedTopic.title,
+        topic: topic.title,
         level: "intermedio",
-        difficulty: selectedTopic.difficulty,
+        difficulty: topic.difficulty,
         locale,
       }),
     });
     const data = (await res.json()) as {
       content?: { title?: string; summary?: string; examples?: string[]; references?: string[] };
     };
-    setContent(data.content ? { ...data.content, explanations: [data.content.summary ?? ""], articles: data.content.references ?? [] } : null);
+    setContentEntry(
+      data.content
+        ? {
+            locale,
+            data: {
+              ...data.content,
+              explanations: [data.content.summary ?? ""],
+              articles: data.content.references ?? [],
+            },
+          }
+        : null,
+    );
     setIsContentLoading(false);
   };
 
@@ -505,7 +542,10 @@ export function ChatContainer() {
           onNewChat={handleNewChat}
           onChooseTopic={() => setShowTopicSelector((v) => !v)}
           onToggleTheme={() => setIsDarkMode((v) => !v)}
-          onGenerateQuiz={() => setIsQuizOpen(true)}
+          onGenerateQuiz={() => {
+            if (!requireTopic()) return;
+            setIsQuizOpen(true);
+          }}
           onExploreContent={exploreContent}
           onToggleGuidedPractice={() => setShowGuidedPractice((v) => !v)}
           onAnalyzeDocument={() => documentInputRef.current?.click()}

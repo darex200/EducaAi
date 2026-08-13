@@ -11,7 +11,9 @@ export function isDatabaseEnabled() {
 }
 
 export function isClientDatabaseEnabled() {
-  return process.env.NEXT_PUBLIC_APP_MODE === "database";
+  if (process.env.NEXT_PUBLIC_APP_MODE !== "database") return false;
+  if (process.env.NEXT_PUBLIC_ENABLE_DATABASE === "false") return false;
+  return true;
 }
 
 export function isClientGoogleAuthEnabled() {

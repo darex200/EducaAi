@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAuthUserId, isDbConfigured } from "@/lib/api-auth";
 import { getProgressSummary } from "@/lib/progress";
+import { getDemoProgressSummary } from "@/lib/demo-progress";
 
 export async function GET() {
   if (!isDbConfigured()) {
-    return NextResponse.json(
-      { error: "Configura la base de datos (DATABASE_URL) para ver tu progreso." },
-      { status: 503 },
-    );
+    return NextResponse.json(getDemoProgressSummary());
   }
 
   const userId = await getAuthUserId();

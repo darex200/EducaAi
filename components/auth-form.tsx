@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { LanguageToggle } from "@/components/language-toggle";
 import { useLanguage } from "@/context/language-context";
 
 type AuthMode = "login" | "register";
@@ -27,7 +28,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const finishAuth = () => {
-    router.replace("/tutor");
+    router.replace(isDatabaseEnabled ? "/dashboard/ai-tutor" : "/tutor");
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -38,18 +39,16 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
     try {
       if (isDatabaseEnabled) {
         if (isRegister) {
-          await register(name.trim() || "Estudiante", email.trim(), password);
+          await register(name.trim() || t("authNamePlaceholder"), email.trim(), password);
         } else {
           await login(email.trim(), password);
         }
       } else {
-        await register(name.trim() || "Estudiante", "", "");
+        await register(name.trim() || t("authNamePlaceholder"), "", "");
       }
       finishAuth();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Ocurrió un error. Intenta de nuevo.",
-      );
+      setError(err instanceof Error ? err.message : t("authGenericError"));
       setIsSubmitting(false);
     }
   };
@@ -57,13 +56,14 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
   if (!isDatabaseEnabled) {
     return (
       <form onSubmit={handleSubmit} className="card-surface w-full max-w-md space-y-4 p-6">
-        <h1 className="text-2xl font-semibold text-indigo-800">Entra a Educa AI</h1>
-        <p className="text-sm text-slate-600">
-          Solo escribe tu nombre. No necesitas correo ni contraseña.
-        </p>
+        <div className="flex justify-end">
+          <LanguageToggle />
+        </div>
+        <h1 className="text-2xl font-semibold text-indigo-800">{t("authDemoTitle")}</h1>
+        <p className="text-sm text-slate-600">{t("authDemoSubtitle")}</p>
         <input
           className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
-          placeholder="Tu nombre"
+          placeholder={t("authNamePlaceholder")}
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
@@ -81,10 +81,10 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
         >
           {isSubmitting ? (
             <span className="inline-flex items-center justify-center">
-              <LoadingSpinner label="Entrando..." />
+              <LoadingSpinner label={t("authDemoSubmitting")} />
             </span>
           ) : (
-            "Empezar"
+            t("authDemoStart")
           )}
         </button>
       </form>
@@ -93,13 +93,14 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="card-surface w-full max-w-md space-y-4 p-6">
+      <div className="flex justify-end">
+        <LanguageToggle />
+      </div>
       <h1 className="text-2xl font-semibold text-indigo-800">
-        {isRegister ? "Crea tu cuenta" : "Bienvenido de nuevo"}
+        {isRegister ? t("authRegisterTitle") : t("authLoginTitle")}
       </h1>
       <p className="text-sm text-slate-600">
-        {isRegister
-          ? "Regístrate para guardar tu historial y progreso."
-          : "Inicia sesión con tu correo y contraseña."}
+        {isRegister ? t("authRegisterSubtitle") : t("authLoginSubtitle")}
       </p>
       {error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
@@ -118,7 +119,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
       {isRegister && (
         <input
           className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
-          placeholder="Tu nombre"
+          placeholder={t("authNamePlaceholder")}
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
@@ -128,7 +129,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
       <input
         type="email"
         className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
-        placeholder="Correo electrónico"
+        placeholder={t("authEmailPlaceholder")}
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         required
@@ -137,7 +138,7 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
       <input
         type="password"
         className="w-full rounded-xl border bg-white px-4 py-2.5 outline-none ring-indigo-300 transition focus:ring-2"
-        placeholder="Contraseña (mínimo 6 caracteres)"
+        placeholder={t("authPasswordPlaceholder")}
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         minLength={6}
@@ -152,13 +153,13 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
         {isSubmitting ? (
           <span className="inline-flex items-center justify-center">
             <LoadingSpinner
-              label={isRegister ? "Creando cuenta..." : "Iniciando sesión..."}
+              label={isRegister ? t("authSubmittingRegister") : t("authSubmittingLogin")}
             />
           </span>
         ) : isRegister ? (
-          "Registrarse"
+          t("authSubmitRegister")
         ) : (
-          "Iniciar sesión"
+          t("authSubmitLogin")
         )}
       </button>
       {!isRegister ? (
@@ -172,16 +173,16 @@ export function AuthForm({ mode = "login" }: AuthFormProps) {
       <p className="text-center text-sm text-slate-600">
         {isRegister ? (
           <>
-            ¿Ya tienes cuenta?{" "}
+            {t("authHasAccount")}{" "}
             <Link href="/login" className="font-medium text-indigo-700">
-              Inicia sesión
+              {t("authSignInLink")}
             </Link>
           </>
         ) : (
           <>
-            ¿Primera vez?{" "}
+            {t("authFirstTime")}{" "}
             <Link href="/register" className="font-medium text-indigo-700">
-              Crear cuenta
+              {t("authCreateAccountLink")}
             </Link>
           </>
         )}

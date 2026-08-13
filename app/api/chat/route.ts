@@ -157,7 +157,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const locale = detectLocaleFromMessages(latestMessages, uiLocale);
+    locale = detectLocaleFromMessages(latestMessages, uiLocale);
     const lastUserMessage = [...latestMessages]
       .reverse()
       .find((message) => message.role === "user");

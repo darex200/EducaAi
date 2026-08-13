@@ -13,7 +13,7 @@ function getInitials(name: string) {
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 }
 
-export function UserMenu() {
+function UserMenuPanel() {
   const { user, logout, isLoading } = useAuth();
   const { t } = useLanguage();
   const pathname = usePathname();
@@ -33,10 +33,6 @@ export function UserMenu() {
     window.addEventListener("mousedown", handlePointerDown);
     return () => window.removeEventListener("mousedown", handlePointerDown);
   }, [open]);
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   if (isLoading) return null;
 
@@ -120,4 +116,9 @@ export function UserMenu() {
       </button>
     </div>
   );
+}
+
+export function UserMenu() {
+  const pathname = usePathname();
+  return <UserMenuPanel key={pathname} />;
 }

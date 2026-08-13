@@ -38,11 +38,24 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const parsed = requestSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
+  }
+  const { examDate, hoursPerWeek, goal, locale } = parsed.data;
+
   if (!isDbConfigured()) {
-    return NextResponse.json(
-      { error: "Configura la base de datos para generar planes personalizados." },
-      { status: 503 },
-    );
+    const { plan, source } = await generateStudyPlan({
+      level: null,
+      examDate: examDate || null,
+      hoursPerWeek,
+      goal,
+      weakTopics: [],
+      pendingTopics: ["Matemáticas", "Ciencias", "Lenguaje"],
+      masteredTopics: [],
+      locale,
+    });
+    return NextResponse.json({ plan, source, demo: true });
   }
 
   const userId = await getAuthUserId();
@@ -51,12 +64,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const parsed = requestSchema.safeParse(await request.json());
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
-    }
-    const { examDate, hoursPerWeek, goal, locale } = parsed.data;
-
     const [user, profile, masteries] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },

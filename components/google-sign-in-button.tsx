@@ -80,56 +80,52 @@ function authErrorMessage(code: string, locale: "en" | "es" | "pt") {
   return messages[code]?.[locale] ?? messages.Default[locale];
 }
 
+async function isGoogleProviderAvailable() {
+  try {
+    const response = await fetch("/api/auth/providers", {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+      return false;
+    }
+    const providers = (await response.json()) as Record<string, unknown>;
+    return Boolean(providers.google);
+  } catch {
+    return false;
+  }
+}
+
 export function GoogleSignInButton({
   label,
-  callbackUrl = "/tutor",
+  callbackUrl = "/dashboard/ai-tutor",
   onError,
 }: GoogleSignInButtonProps) {
   const { locale } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-
-    async function checkProviders() {
-      try {
-        const response = await fetch("/api/auth/providers", {
-          credentials: "same-origin",
-          headers: { Accept: "application/json" },
-        });
-        if (!response.ok) {
-          if (!cancelled) onError?.(authErrorMessage("Unreachable", locale));
-          return;
-        }
-
-        const contentType = response.headers.get("content-type") ?? "";
-        if (!contentType.includes("application/json")) {
-          if (!cancelled) onError?.(authErrorMessage("Unreachable", locale));
-          return;
-        }
-
-        const providers = (await response.json()) as Record<string, unknown>;
-        if (!cancelled && !providers.google) {
-          onError?.(authErrorMessage("Configuration", locale));
-        }
-      } catch {
-        if (!cancelled) {
-          onError?.(authErrorMessage("Unreachable", locale));
-        }
-      }
-    }
-
-    void checkProviders();
+    void isGoogleProviderAvailable().then((available) => {
+      if (!cancelled) setIsAvailable(available);
+    });
     return () => {
       cancelled = true;
     };
-  }, [locale, onError]);
+  }, []);
 
   const handleClick = async () => {
     setIsLoading(true);
     onError?.(null);
 
     try {
+      const available = await isGoogleProviderAvailable();
+      if (!available) {
+        onError?.(authErrorMessage("Configuration", locale));
+        return;
+      }
+
       const result = await signIn("google", { callbackUrl, redirect: false });
       if (result?.error) {
         onError?.(authErrorMessage(result.error, locale));
@@ -139,7 +135,6 @@ export function GoogleSignInButton({
         window.location.assign(result.url);
         return;
       }
-      // Fallback si Auth.js no devolvió URL (p. ej. redirección directa).
       window.location.assign(
         `/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`,
       );
@@ -150,13 +145,15 @@ export function GoogleSignInButton({
     }
   };
 
+  if (isAvailable === false) return null;
+
   return (
     <button
       type="button"
       onClick={() => {
         void handleClick();
       }}
-      disabled={isLoading}
+      disabled={isLoading || isAvailable === null}
       className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70"
     >
       <GoogleIcon />

@@ -38,7 +38,7 @@ export const authConfig = {
 
       if (isPublicPath(pathname)) {
         if (isLoggedIn && (pathname.startsWith("/login") || pathname.startsWith("/register"))) {
-          return Response.redirect(new URL("/tutor", nextUrl));
+          return Response.redirect(new URL("/dashboard/ai-tutor", nextUrl));
         }
         return true;
       }

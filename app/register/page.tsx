@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { Navbar } from "@/components/navbar";
 import { AuthForm } from "@/components/auth-form";
@@ -13,12 +12,6 @@ export default function RegisterPage() {
           <AuthOAuthNotice />
         </Suspense>
         <AuthForm mode="register" />
-        <p className="mt-4 text-sm text-slate-600">
-          ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="font-medium text-indigo-700">
-            Inicia sesión
-          </Link>
-        </p>
       </main>
     </div>
   );

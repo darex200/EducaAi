@@ -31,26 +31,32 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const { locale, t } = useLanguage();
   const { profile } = useLearning();
+  const databaseEnabled = isClientDatabaseEnabled();
+  const userId = user?.id;
   const [serverProfile, setServerProfile] = useState<ServerProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(isClientDatabaseEnabled());
+  const [loadedForUserId, setLoadedForUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isClientDatabaseEnabled() || !user) {
-      setIsLoading(false);
-      return;
-    }
+    if (!databaseEnabled || !userId) return;
 
+    let cancelled = false;
     void (async () => {
       try {
         const response = await fetch("/api/profile");
-        if (response.ok) {
+        if (!cancelled && response.ok) {
           setServerProfile((await response.json()) as ServerProfile);
         }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setLoadedForUserId(userId);
       }
     })();
-  }, [user]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [databaseEnabled, userId]);
+
+  const isLoading = databaseEnabled && Boolean(userId) && loadedForUserId !== userId;
 
   const displayName = serverProfile?.user?.name ?? user?.name ?? t("noSession");
   const displayEmail = serverProfile?.user?.email ?? user?.email ?? "";
